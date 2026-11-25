@@ -1,0 +1,2407 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dashboard Calcindo 6.2</title>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Dashboard Calcindo Jatim">
+    <link rel="apple-touch-icon" href="https://adlsyyualatelwwkftyf.supabase.co/storage/v1/object/public/assets/calsindo.jpg">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Hanya Supabase di awal. Leaflet / MarkerCluster / Tailwind / FA di-lazy-load saat tab Peta dibuka -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        body{font-family:Arial,Helvetica,sans-serif;background:#f4f7f6;padding:15px;color:#333;margin:0}
+        input,button,select,textarea{font-family:inherit}
+        .container{background:#fff;padding:20px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,.1);max-width:1500px;margin:auto}
+        .header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #eee;padding-bottom:15px;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+        .header h3{margin:0;width:100%;text-align:left}
+        .header-btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start;width:100%}
+        .btn{padding:12px 16px;border:none;border-radius:6px;cursor:pointer;color:#fff;font-weight:700;font-size:13px;transition:.2s;text-align:center}
+        .btn-green{background:#27ae60}.btn-blue{background:#2980b9}.btn-orange{background:#d35400}.btn-purple{background:#8e44ad}.btn-red{background:#c0392b}
+        .btn-gray{background:#95a5a6;color:#fff}
+        .btn:hover:not(:disabled){opacity:.8}
+        .btn:disabled{background:#bdc3c7;cursor:not-allowed}
+        table{width:100%;border-collapse:collapse;font-size:12px}
+        th{background:#34495e;color:#fff;padding:12px 8px;text-align:left;position:sticky;top:0;white-space:nowrap;z-index:10}
+        td{padding:10px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top}
+        .thumb{width:112px;height:63px;object-fit:cover;object-position:center;border-radius:8px;border:1px solid #ddd;margin:0;cursor:pointer;background:#eee;aspect-ratio:16/9;display:block;flex:none}
+        #dataTable th:nth-child(16),#dataTable td.photo-cell{width:250px;min-width:250px;max-width:250px;box-sizing:border-box}
+        #dataTable td.photo-cell{vertical-align:top;padding:8px}
+        .photo-thumbnails{display:grid;grid-template-columns:repeat(2,minmax(0,112px));gap:7px;width:max-content;max-width:100%}
+        .photo-thumbnails .thumb{width:112px;height:63px;aspect-ratio:16/9}
+        @media(max-width:600px){#dataTable th:nth-child(16),#dataTable td.photo-cell{width:244px;min-width:244px;max-width:244px}.photo-thumbnails{grid-template-columns:repeat(2,minmax(0,108px));gap:6px}.photo-thumbnails .thumb{width:108px;height:61px}}
+        .brand-logo{height:52px;object-fit:contain;display:block;margin:0 auto 14px auto}
+        .brand-logo-header{height:40px;object-fit:contain;vertical-align:middle;margin-right:10px;border-radius:6px}
+        .brand-logo-tab{height:26px;object-fit:contain;vertical-align:middle;margin-right:8px}
+        .modal{display:none;position:fixed;z-index:2000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.8)}
+        .form-content{background:#fff;margin:5vh auto;padding:20px;border-radius:12px;width:90%;max-width:550px;max-height:85vh;overflow-y:auto}
+        .form-group{margin-bottom:15px;width:100%}
+        .form-group label{display:block;font-weight:700;font-size:12px;margin-bottom:5px;color:#555}
+        .form-group input,.form-group textarea,.form-group select{width:100%;padding:12px;border:1px solid #ccc;border-radius:6px;font-size:14px;box-sizing:border-box;background:#fff}
+        .close-btn{float:right;cursor:pointer;font-size:24px;font-weight:700;color:#e74c3c;border:none;background:none;padding:0}
+        .file-upload-box{border:2px dashed #8e44ad;padding:20px;text-align:center;border-radius:6px;background:#fdf2fe;cursor:pointer;font-weight:700}
+        .flex-row{display:flex;gap:10px;width:100%}
+        .login-box{max-width:400px;width:90%;margin:15vh auto;text-align:center;padding:30px 20px}
+        .controls-bar{display:flex;justify-content:space-between;align-items:center;background:#f8f9fa;padding:10px 15px;border-radius:8px;margin-bottom:15px;border:1px solid #e1e8ed;flex-wrap:wrap;gap:10px}
+        .search-box{padding:8px 12px;border:1px solid #ccc;border-radius:6px;width:250px;font-size:13px}
+        .pagination-info{font-size:13px;font-weight:700;color:#555}
+        .pagination-controls{display:flex;align-items:center;gap:10px}
+        .page-select{padding:6px;border-radius:6px;border:1px solid #ccc}
+        .error-list{background:#fffbeb;border-left:4px solid #f59e0b;padding:15px;font-family:monospace;font-size:12px;max-height:250px;overflow-y:auto;color:#92400e;margin-top:10px;border-radius:0 6px 6px 0}
+        .error-item{margin-bottom:8px;border-bottom:1px dashed #fcd34d;padding-bottom:8px}
+        .error-item:last-child{margin-bottom:0;border-bottom:none;padding-bottom:0}
+        tr.row-coord-bad{background:#fff7ed !important}
+        tr.row-coord-bad:hover{background:#ffedd5 !important}
+        .badge-coord-bad{display:inline-block;background:#ea580c;color:#fff;font-size:10px;font-weight:700;padding:3px 7px;border-radius:4px;line-height:1.3;white-space:nowrap}
+        .badge-coord-ok{display:inline-block;color:#16a34a;font-size:16px;text-decoration:none}
+        .coord-alert-bar{display:none;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:13px;font-weight:600}
+        .load-more-bar{display:none;text-align:center;margin-top:12px}
+        @media (max-width:600px){.btn{flex:1 1 45%}.flex-row{flex-direction:column;gap:0}.controls-bar{flex-direction:column;align-items:flex-start}.search-box{width:100%;box-sizing:border-box}}
+
+        /* CSS SCRIPT 2 (VISUALISASI PETA LEAFLET) */
+        #map{height:75vh;width:100%;border-radius:1rem;z-index:1}
+        .info-panel{background:rgba(255,255,255,0.95);backdrop-filter:blur(4px);padding:12px;border-radius:12px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1),0 2px 4px -1px rgba(0,0,0,0.06);border:1px solid #e2e8f0}
+        .loader{border-top-color:#3b82f6;animation:spinner 1.5s linear infinite}
+        @keyframes spinner{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        .leaflet-popup-content-wrapper{border-radius:12px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1)}
+        .custom-loli-icon{background:transparent;border:none}
+        .loli-wrapper{transition:transform 0.2s ease-in-out}
+        .loli-wrapper:hover{transform:scale(1.2) rotate(5deg)}
+        .tab-active{background-color:white;color:#2563eb;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+        .tab-inactive{background-color:transparent;color:#64748b}
+        .tab-inactive:hover{color:#334155}
+        .switch{position:relative;display:inline-block;width:46px;height:24px}
+        .switch input{opacity:0;width:0;height:0}
+        .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#cbd5e1;transition:.4s;border-radius:24px}
+        .slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background-color:white;transition:.4s;border-radius:50%}
+        input:checked+.slider{background-color:#3b82f6}
+        input:focus+.slider{box-shadow:0 0 1px #3b82f6}
+        input:checked+.slider:before{transform:translateX(22px)}
+    </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginContainer" class="container login-box" style="display:none">
+    <img src="https://adlsyyualatelwwkftyf.supabase.co/storage/v1/object/public/assets/calsindo.jpg" alt="Logo Calsindo" class="brand-logo">
+    <h2 style="margin-top:0;color:#2c3e50">🔐 DASHBOARD Login</h2>
+    <div class="form-group"><input type="email" id="login_email" placeholder="Email Terdaftar" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="form-group"><input type="password" id="login_pass" placeholder="Password Rahasia" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button id="btnLogin" class="btn btn-blue" style="width:100%;padding:15px" onclick="doLogin()">Masuk Dashboard</button>
+    <button id="btnBackViewer" type="button" class="btn btn-gray" style="width:100%;padding:12px;margin-top:10px" onclick="enterViewerMode()">🗺️ Kembali ke Peta & Statistik</button>
+    <div id="loginError" style="color:#e74c3c;font-size:13px;margin-top:15px;font-weight:700"></div>
+</div>
+
+<!-- DASHBOARD UTAMA -->
+<div class="container" id="mainDashboard" style="display:none">
+    <div class="header">
+        <h3 style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">
+            <img src="https://adlsyyualatelwwkftyf.supabase.co/storage/v1/object/public/assets/calsindo.jpg" alt="Calsindo" class="brand-logo-header">
+            <span>📊 Dashboard Calcindo Jatim 6.2</span>
+            <span id="userGreeting" style="font-size:13px;color:#2980b9;background:#e8f4f8;padding:5px 12px;border-radius:20px;font-weight:700"></span>
+        </h3>
+        <div class="header-btns">
+            <button id="btnAddNew" class="btn btn-purple" style="display:none" onclick="openForm()">➕ Tambah Baru</button>
+            <button id="btnRefreshData" class="btn btn-blue" onclick="loadData()">🔄 Refresh</button>
+            <button id="btnDownloadFast" class="btn btn-green" style="display:none" onclick="downloadExcel(false)">⚡ Excel Cepat</button>
+            <button id="btnDownloadFull" class="btn btn-blue" style="display:none" onclick="downloadExcel(true)">🖼️ Excel Full</button>
+            <input type="file" id="excelInput" accept=".xlsx" style="display:none" onchange="uploadBulkExcel(event)">
+            <button id="btnBulkUpload" class="btn btn-orange" style="display:none" onclick="document.getElementById('excelInput').click()">📤 Bulk Upload</button>
+            <button id="btnLogout" class="btn btn-red" style="display:none" onclick="doLogout()">🚪 Logout</button>
+            <button id="btnOpenLogin" class="btn btn-blue" onclick="openLoginScreen()">🔐 Login</button>
+        </div>
+        <div style="width:100%;text-align:center;margin-top:5px"><span id="status" style="font-weight:700"></span></div>
+    </div>
+
+    <!-- TAB NAVIGASI UTAMA -->
+    <div style="display:flex; border-bottom: 2px solid #eee; margin-bottom: 15px;">
+        <button id="tabData" onclick="switchMainTab('data')" style="display:none; padding:10px 20px; font-weight:bold; background:#fff; border:none; border-bottom: 3px solid #2980b9; color:#2980b9; cursor:pointer; font-size:14px; transition:0.3s; align-items:center;">
+            <img src="https://adlsyyualatelwwkftyf.supabase.co/storage/v1/object/public/assets/calsindo.jpg" alt="" class="brand-logo-tab">TABEL DATA DEMPLOT
+        </button>
+        <button id="tabPeta" onclick="switchMainTab('peta')" style="padding:10px 20px; font-weight:bold; background:#fff; border:none; border-bottom: 3px solid transparent; color:#7f8c8d; cursor:pointer; font-size:14px; transition:0.3s; display:inline-flex; align-items:center;">
+            <img src="https://adlsyyualatelwwkftyf.supabase.co/storage/v1/object/public/assets/calsindo.jpg" alt="" class="brand-logo-tab">PETA & STATISTIK JATIM
+        </button>
+    </div>
+
+    <!-- VIEW 1: TABEL DATA (Hanya tampil jika login) -->
+    <div id="viewData" style="display:none;">
+        <div class="controls-bar" id="controlsBar" style="display:none">
+            <div>
+                Tampilkan 
+                <select id="itemsPerPage" class="page-select" onchange="changeItemsPerPage()">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="30">30</option>
+                    <option value="50">50</option>
+                    <option value="all">Semua (Bertahap)</option>
+                </select> baris
+            </div>
+            <div>
+                <select id="filterStatus" class="page-select" onchange="filterData()" style="font-weight:700">
+                    <option value="all">Tampilkan Semua Status</option>
+                    <option value="1">🟢 Hanya Demplot Aktif</option>
+                    <option value="0">🔴 Hanya Tidak Aktif</option>
+                </select>
+            </div>
+            <div>
+                <select id="filterCoord" class="page-select" onchange="filterData()" style="font-weight:700">
+                    <option value="all">Semua Koordinat</option>
+                    <option value="bad">⚠️ Koordinat Bermasalah</option>
+                    <option value="ok">✅ Koordinat Valid</option>
+                </select>
+            </div>
+            <div>
+                <input type="text" id="searchInput" class="search-box" placeholder="🔍 Cari ID, Pemilik, dll..." oninput="debounceFilterData()">
+            </div>
+            <div class="pagination-controls">
+                <span id="pageInfo" class="pagination-info">Halaman 1 dari 1</span>
+                <button id="btnPrev" class="btn btn-gray" style="padding:6px 12px" onclick="prevPage()">◀</button>
+                <button id="btnNext" class="btn btn-gray" style="padding:6px 12px" onclick="nextPage()">▶</button>
+            </div>
+        </div>
+
+        <div id="coordAlertBar" class="coord-alert-bar"></div>
+        <div id="loading" style="text-align:center;padding:40px">⏳ Memuat data...</div>
+
+        <div style="overflow-x:auto">
+            <table id="dataTable" style="display:none">
+                <thead>
+                    <tr>
+                        <th>ID Demplot</th>
+                        <th>Pemilik</th>
+                        <th>Telepon</th>
+                        <th align="center">Peta</th>
+                        <th style="text-align:center;white-space:normal;width:65px;line-height:1.2">Luas<br><span style="font-size:10px;font-weight:400">(Ha)</span></th>
+                        <th style="text-align:center;white-space:normal;width:65px;line-height:1.2">Potensi<br><span style="font-size:10px;font-weight:400">(Ha)</span></th>
+                        <th style="text-align:center;white-space:normal;width:65px;line-height:1.2">Panen<br><span style="font-size:10px;font-weight:400">(Ton/Ha)</span></th>
+                        <th style="text-align:center;white-space:normal;width:65px;line-height:1.2">Kontrol<br><span style="font-size:10px;font-weight:400">(Ton/Ha)</span></th>
+                        <th>Status</th>
+                        <th>Tgl Tanam</th>
+                        <th>P1</th>
+                        <th>P2</th>
+                        <th>P3</th>
+                        <th>P4</th>
+                        <th>P5</th>
+                        <th>Foto</th>
+                        <th>Keterangan</th>
+                        <th>Pembuat Data</th>
+                        <th>Editor Terakhir</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+        <div id="loadMoreBar" class="load-more-bar">
+            <button id="btnLoadMoreRows" type="button" class="btn btn-blue" onclick="loadMoreTableRows()">⬇️ Muat Lebih Banyak</button>
+        </div>
+        <div id="tableFooterInfo" style="margin-top:10px;font-size:13px;color:#7f8c8d;text-align:right;font-weight:700;display:none"></div>
+    </div>
+
+    <!-- VIEW 2: PETA & STATISTIK (Terbuka untuk Publik & Login) -->
+    <div id="viewPeta" style="display:none;" class="bg-slate-50 p-2 md:p-4 rounded-xl border border-slate-200 mt-2">
+        <div class="flex flex-col lg:flex-row justify-between items-center gap-3 mb-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto">
+                <div class="flex items-center bg-slate-100 p-1 rounded-lg w-full sm:w-auto overflow-x-auto text-xs font-bold">
+                    <button id="btnModeDemplot" onclick="switchMapMode('demplot')" class="py-1.5 px-3 rounded-md transition-all tab-active whitespace-nowrap">🌍 Demplot (Kab)</button>
+                    <button id="btnModePotensi" onclick="switchMapMode('potensi')" class="py-1.5 px-3 rounded-md transition-all tab-inactive whitespace-nowrap border-l border-slate-200">📈 Potensi (Kab)</button>
+                    <button id="btnModeDemplotKec" onclick="switchMapMode('demplot_kec')" class="py-1.5 px-3 rounded-md transition-all tab-inactive whitespace-nowrap border-l border-slate-200">🌍 Demplot (Kec)</button>
+                    <button id="btnModePotensiKec" onclick="switchMapMode('potensi_kec')" class="py-1.5 px-3 rounded-md transition-all tab-inactive whitespace-nowrap border-l border-slate-200">📈 Potensi (Kec)</button>
+                    <button id="btnModeTabel" onclick="switchMapMode('tabel')" class="py-1.5 px-3 rounded-md transition-all tab-inactive whitespace-nowrap border-l border-slate-200">🏆 Tabel Potensi</button>
+                    <button id="btnModeTitik" onclick="switchMapMode('titik')" class="py-1.5 px-3 rounded-md transition-all tab-inactive whitespace-nowrap border-l border-slate-200">📍 Tabel Titik</button>
+                </div>
+            </div>
+            <div class="flex items-center justify-end w-full lg:w-auto">
+                <div id="toggleContainer" class="flex items-center bg-white px-3 py-1.5 rounded-lg border shadow-sm">
+                    <span class="text-xs font-bold text-slate-700 mr-2">Hanya Lahan Aktif</span>
+                    <label class="switch">
+                        <input type="checkbox" id="toggleAktif" onchange="toggleLahanAktif()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div id="matchWarningBox" class="hidden mb-3 bg-amber-50 border border-amber-300 text-amber-900 p-4 rounded-xl text-sm">
+            <div class="flex items-start gap-3">
+                <i class="fas fa-exclamation-triangle text-amber-500 mt-0.5"></i>
+                <div>
+                    <p class="font-bold mb-1">Ada nama wilayah di data yang belum cocok ke peta</p>
+                    <p class="text-xs text-amber-800 mb-2">Data tetap dihitung di statistik, tetapi polygon tidak terarsir.</p>
+                    <div id="matchWarningList" class="flex flex-wrap gap-2 text-xs font-mono"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-2 rounded-2xl shadow-md border border-slate-200 relative" id="mainDisplayArea">
+            <div id="mapWrapper" class="relative w-full">
+                <div id="map"></div>
+                <!-- BAR FOKUS WILAYAH & RESET ZOOM -->
+                <div id="regionFocusBar" class="hidden absolute top-4 left-4 info-panel z-[1000] flex items-center gap-2 text-xs font-bold text-slate-800" style="padding:8px 12px">
+                    <span id="txtFocusedRegion" class="uppercase"></span>
+                    <button type="button" onclick="resetMapFocus(true)" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer">🔄 Reset Jatim</button>
+                </div>
+                <div id="mapLoader" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-[500] flex flex-col items-center justify-center rounded-xl transition-all duration-500 hidden">
+                    <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-200 h-14 w-14 mb-4"></div>
+                    <p id="loaderText" class="text-sm font-bold text-slate-600 tracking-wide">Mengunduh Data Peta...</p>
+                </div>
+                <div class="absolute bottom-6 right-6 info-panel z-[1000] text-xs font-semibold text-slate-700" id="legendBox">
+                    <h4 id="legendTitle" class="font-bold text-slate-900 mb-3 uppercase tracking-wider text-[10px] border-b pb-2">Total Luasan (Ha)</h4>
+                    <div id="legendContainer"></div>
+                </div>
+            </div>
+
+            <div id="tableWrapper" class="hidden w-full p-2 md:p-6" style="height: 75vh; overflow-y: auto;">
+                <h3 id="rankHeaderTitle" class="text-lg font-bold text-slate-800 mb-3"></h3>
+                <div class="mb-4">
+                    <input type="text" id="searchRankInput" oninput="debounceFilterTabelPeringkat()" placeholder="🔍 Cari nama Kabupaten atau Kecamatan..." class="w-full md:w-1/2 px-4 py-3 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm">
+                </div>
+                <table class="w-full text-left border-collapse bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden" style="font-family:'Inter',sans-serif">
+                    <thead class="bg-slate-100 text-slate-700 text-xs sm:text-sm uppercase tracking-wider sticky top-0 shadow-sm z-10">
+                        <tr>
+                            <th class="p-4 border-b-2 border-slate-200 font-black w-20 text-center">Rank</th>
+                            <th class="p-4 border-b-2 border-slate-200 font-black">Kabupaten</th>
+                            <th class="p-4 border-b-2 border-slate-200 font-black">Kecamatan</th>
+                            <th id="thNilaiTabel" class="p-4 border-b-2 border-slate-200 font-black text-right">Nilai</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rankTableBody" class="text-sm text-slate-800 divide-y divide-slate-100"></tbody>
+                </table>
+                <div id="tableFooterInfoTab" class="bg-slate-100 border border-t-0 border-slate-200 rounded-b-xl p-4 flex justify-between items-center text-sm font-bold text-slate-700" style="font-family:'Inter',sans-serif">
+                    <span>Total Keseluruhan (Tampil):</span>
+                    <span id="txtTableGrandTotal" class="text-lg">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="bottomStatPanel" class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4 mt-3">
+            <div class="flex flex-col sm:flex-row justify-between items-center text-sm font-medium text-slate-700 gap-3">
+                <div class="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 w-full sm:w-auto justify-center">
+                    <i id="iconTotalLahan" class="fas fa-map-marker-alt text-blue-500"></i>
+                    <span id="labelTotalLahan">Total Titik Lahan:</span>
+                    <span id="txtTotalData" class="font-bold text-slate-800 text-base">0</span>
+                </div>
+                <div class="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100 w-full sm:w-auto justify-center">
+                    <i id="iconTotalArea" class="fas fa-expand-arrows-alt text-blue-600"></i>
+                    <span id="labelTotalArea">Total Luasan Jatim:</span>
+                    <span id="txtTotalArea" class="font-bold text-blue-700 text-base">0</span>
+                    <span class="text-xs">Ha</span>
+                </div>
+                <div id="boxIgnored" class="flex items-center gap-2 bg-red-50 px-4 py-2 rounded-lg border border-red-100 w-full sm:w-auto justify-center hidden">
+                    <i class="fas fa-times-circle text-red-500"></i>
+                    Non-Aktif (Diabaikan):
+                    <span id="txtIgnoredData" class="font-bold text-red-700 text-base">0</span>
+                </div>
+            </div>
+            <div id="unmappedRegencyBox" class="hidden border-t border-slate-100 pt-3">
+                <p id="labelUnmapped" class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Daerah Tanpa Lahan (Kosong / Koordinat Gagal):</p>
+                <div id="unmappedRegencyList" class="flex flex-wrap gap-2 text-xs"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL INPUT -->
+<div id="inputModal" class="modal">
+    <div class="form-content">
+        <button class="close-btn" onclick="closeForm()">✖</button>
+        <h3 id="formTitle">Form Input Data</h3>
+        <input type="hidden" id="inp_created_by">
+        <div id="add_id_group" class="flex-row">
+            <div class="form-group"><label>Provinsi*</label><select id="inp_prov" onchange="loadKota()"></select></div>
+            <div class="form-group"><label>Kota/Kab*</label><select id="inp_kota" onchange="loadKecamatan()"></select></div>
+            <div class="form-group"><label>Kecamatan*</label><select id="inp_kec"></select></div>
+        </div>
+        <div id="edit_id_group" class="form-group" style="display:none">
+            <label>ID Demplot (Terkunci)</label>
+            <input type="text" id="inp_id" disabled style="background:#f0f0f0">
+        </div>
+        <div class="form-group"><label>Nama Pemilik</label><input type="text" id="inp_pemilik"></div>
+        <div class="form-group"><label>Nomor Telepon</label><input type="text" id="inp_telp"></div>
+        <div class="form-group">
+            <label>Link Peta Lokasi (Atau ketik koordinat -7.xx, 112.xx)</label>
+            <input type="text" id="inp_peta" placeholder="Paste URL peta / Koordinat disini">
+        </div>
+        <div class="flex-row">
+            <div class="form-group"><label>Luasan Demplot (Ha)</label><input type="text" id="inp_luas" inputmode="decimal"></div>
+            <div class="form-group"><label>Luas Potensi Pasar (Ha)</label><input type="text" id="inp_potensi" inputmode="decimal" placeholder="Contoh: 1.5"></div>
+        </div>
+        <div class="flex-row">
+            <div class="form-group"><label>Hasil Panen Demplot (Ton/Ha)</label><input type="text" id="inp_hasil_panen" inputmode="decimal" placeholder="Contoh: 8.5"></div>
+            <div class="form-group"><label>Hasil Kontrol (Ton/Ha)</label><input type="text" id="inp_hasil_kontrol" inputmode="decimal" placeholder="Contoh: 7.2"></div>
+        </div>
+        <div class="flex-row">
+            <div class="form-group"><label>Tanggal Tanam</label><input type="date" id="inp_tanam"></div>
+            <div class="form-group">
+                <label>Status Lahan Demplot</label>
+                <select id="inp_status_aktif" style="cursor:pointer">
+                    <option value="1">🟢 AKTIF</option>
+                    <option value="0">🔴 TIDAK AKTIF</option>
+                </select>
+            </div>
+        </div>
+        <div class="flex-row">
+            <div class="form-group"><label>Tgl Perlakuan 1</label><input type="date" id="inp_p1"></div>
+            <div class="form-group"><label>Tgl Perlakuan 2</label><input type="date" id="inp_p2"></div>
+        </div>
+        <div class="flex-row">
+            <div class="form-group"><label>Tgl Perlakuan 3</label><input type="date" id="inp_p3"></div>
+            <div class="form-group"><label>Tgl Perlakuan 4</label><input type="date" id="inp_p4"></div>
+        </div>
+        <div class="flex-row">
+            <div class="form-group"><label>Tgl Perlakuan 5</label><input type="date" id="inp_p5"></div>
+            <div class="form-group"></div>
+        </div>
+        <div class="form-group">
+            <label>📸 Upload Foto</label>
+            <div class="file-upload-box" onclick="document.getElementById('inp_file_foto').click()">Tap di sini untuk pilih foto</div>
+            <input type="file" id="inp_file_foto" accept="image/*" multiple style="display:none" onchange="updateFileLabel()">
+            <small id="fileLabel" style="color:#8e44ad;font-weight:700"></small>
+            <div id="existingPhotos" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"></div>
+        </div>
+        <div class="form-group" style="display:none"><input type="text" id="inp_foto"></div>
+        <div class="form-group"><label>Keterangan</label><textarea id="inp_ket" rows="3"></textarea></div>
+        <div class="flex-row">
+            <button id="btnSimpan" class="btn btn-green" style="flex:2" onclick="saveData()">💾 Simpan Data</button>
+            <button id="btnHapus" class="btn btn-red" style="flex:1;display:none" onclick="promptDelete()">🗑️ Hapus</button>
+        </div>
+    </div>
+</div>
+
+<div id="deleteModal" class="modal" style="z-index:2001">
+    <div class="form-content" style="max-width:400px;text-align:center;margin-top:20vh">
+        <button class="close-btn" onclick="document.getElementById('deleteModal').style.display='none'">✖</button>
+        <h3 style="color:#c0392b;margin-top:0">⚠️ Otorisasi Hapus Data</h3>
+        <p style="font-size:13px;color:#555">Masukkan password Anda untuk menghapus ID:<br><b id="del_target_id" style="color:#000;font-size:15px"></b></p>
+        <div class="form-group">
+            <input type="password" id="del_password" placeholder="Password Login Anda" style="text-align:center;margin-bottom:10px" onkeydown="if(event.key==='Enter')executeDelete()">
+        </div>
+        <button id="btnConfirmDelete" class="btn btn-red" style="width:100%;padding:12px;font-size:15px" onclick="executeDelete()">🗑️ Verifikasi & Hapus</button>
+    </div>
+</div>
+
+<div id="imageModal" class="modal" onclick="this.style.display='none'">
+    <span style="position:absolute;top:10px;right:20px;color:#fff;font-size:40px;font-weight:700;cursor:pointer">×</span>
+    <img class="modal-content" id="fullImage" style="display:block;margin:15vh auto;max-width:95%;max-height:70vh;border:3px solid #fff;object-fit:contain">
+    <div style="text-align:center;margin-top:15px">
+        <a id="originalImageLink" href="#" target="_blank" rel="noopener noreferrer" style="color:#3498db;text-decoration:none;font-size:14px;font-weight:700;background:#fff;padding:10px 20px;border-radius:30px">Buka di Google Drive ↗</a>
+    </div>
+</div>
+
+<div id="uploadErrorModal" class="modal" style="z-index:2002">
+    <div class="form-content" style="max-width:500px">
+        <h3 style="color:#f59e0b;margin-top:0;border-bottom:1px solid #fef3c7;padding-bottom:10px">⚠️ Sebagian Data Gagal Diproses</h3>
+        <p style="font-size:13px;color:#555;margin-top:10px">Data yang valid <b>telah berhasil disimpan</b>. Namun, sistem melewati beberapa baris di bawah ini karena formatnya salah. Silakan koreksi di Excel dan unggah ulang khusus baris-baris ini saja:</p>
+        <div id="uploadErrorList" class="error-list"></div>
+        <div style="margin-top:15px;text-align:right">
+            <button class="btn btn-gray" onclick="document.getElementById('uploadErrorModal').style.display='none'">Tutup & Lanjutkan</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ================= SCRIPT 1: CORE =================
+const SUPABASE_URL = "https://adlsyyualatelwwkftyf.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkbHN5eXVhbGF0ZWx3d2tmdHlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMDY3MzcsImV4cCI6MjA4NjU4MjczN30.QG7BL1d5OORWX6U6TGvz5-1IgjjsT8xexGUwwKM8AH4"; 
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzawrmXfczNV3UbEIx9INw6S0_AmqYjZQTofWZBY-TNwSX4mTO3hdKe9uqlRAhjhBzU/exec";
+const WILAYAH_API = "https://www.emsifa.com/api-wilayah-indonesia/api";
+
+const ALL_MODE_CHUNK = 150;
+let excelJsPromise = null;
+let fileSaverPromise = null;
+let defaultJatimProvId = "";
+let provinsiLoaded = false;
+let provinsiLoadPromise = null;
+const wilayahRequestCache = new Map();
+
+// Helper Sanitasi & Format
+function escapeHtml(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function escapeJsStr(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/"/g, "&quot;")
+        .replace(/\r?\n/g, " ");
+}
+
+function displayValue(val, fallback) {
+    return (val !== null && val !== undefined && String(val).trim() !== "") ? String(val) : fallback;
+}
+
+function parseDecimalNum(val) {
+    if (val === null || val === undefined || val === "") return 0;
+    const cleaned = String(val).trim().replace(/,/g, ".");
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
+}
+
+function normalizeDecimalInput(val) {
+    const raw = (val || "").trim();
+    return raw ? raw.replace(/,/g, ".") : "";
+}
+
+function isRowAktif(rawStatus) {
+    return !(rawStatus === 0 || rawStatus === "0" || rawStatus === false);
+}
+
+function loadScriptOnce(src, globalName) {
+    if (window[globalName]) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src; s.async = true; s.onload = resolve;
+        s.onerror = () => reject(new Error("Gagal memuat: " + src));
+        document.head.appendChild(s);
+    });
+}
+
+async function ensureExcelJS() {
+    if (window.ExcelJS) return;
+    if (!excelJsPromise) {
+        excelJsPromise = loadScriptOnce("https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js", "ExcelJS").catch(e => { excelJsPromise = null; throw e; });
+    }
+    return excelJsPromise;
+}
+
+async function ensureFileSaver() {
+    if (window.saveAs) return;
+    if (!fileSaverPromise) {
+        fileSaverPromise = loadScriptOnce("https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js", "saveAs").catch(e => { fileSaverPromise = null; throw e; });
+    }
+    return fileSaverPromise;
+}
+
+async function fetchAllDemplotRows(onlyJatim = true) {
+    const pageSize = 1000;
+    let allRows = [];
+    let from = 0;
+    while (true) {
+        let query = supabaseClient
+            .from("demplot_monitoring")
+            .select("*")
+            .range(from, from + pageSize - 1);
+        if (onlyJatim) {
+            query = query.ilike("ID_Demplot", "JATIM%");
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allRows = allRows.concat(data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+    }
+    return allRows;
+}
+
+let supabaseClient, globalData = [], filteredData = [], currentUserEmail = "", isEditMode = false, targetDeleteId = "";
+let isLoggedIn = false;
+let dataById = new Map();
+let dataVersion = 0;
+let totalBadCoordCount = 0;
+let currentPage = 1, itemsPerPage = 20;
+let allModeLimit = ALL_MODE_CHUNK;
+let lastTableRenderKey = "";
+let lastRenderedCountInAllMode = 0;
+const $ = id => document.getElementById(id);
+const els = {};
+
+function cacheDOM() {
+    const ids = [
+        "loginContainer","mainDashboard","userGreeting","status","loading","dataTable","controlsBar",
+        "tableFooterInfo","tableBody","pageInfo","btnPrev","btnNext","searchInput","filterStatus","filterCoord","coordAlertBar",
+        "itemsPerPage","loadMoreBar","btnLoadMoreRows","formTitle","add_id_group","edit_id_group","inp_prov","inp_kota","inp_kec",
+        "inp_id","inp_pemilik","inp_telp","inp_peta","inp_luas","inp_potensi","inp_hasil_panen",
+        "inp_hasil_kontrol","inp_tanam","inp_status_aktif","inp_p1","inp_p2","inp_p3","inp_p4","inp_p5",
+        "inp_foto","inp_ket","inp_file_foto","fileLabel","existingPhotos","inp_created_by","btnSimpan","btnHapus",
+        "inputModal","del_target_id","del_password","btnConfirmDelete","deleteModal","fullImage",
+        "originalImageLink","imageModal","uploadErrorList","uploadErrorModal","btnLogin","loginError",
+        "login_email","login_pass","btnDownloadFast","btnDownloadFull",
+        "btnAddNew","btnRefreshData","btnBulkUpload","btnLogout","btnOpenLogin","tabData","tabPeta",
+        "regionFocusBar","txtFocusedRegion"
+    ];
+    ids.forEach(id => { els[id] = $(id); });
+}
+
+// ================= PRE-PROCESSING DATA (1x PER LOAD) =================
+function preprocessGlobalData(rows) {
+    dataById = new Map();
+    let badCount = 0;
+    const processed = (rows || []).sort((a, b) => (a.ID_Demplot || "").localeCompare(b.ID_Demplot || ""));
+
+    for (let i = 0; i < processed.length; i++) {
+        const item = processed[i];
+        const idStr = item.ID_Demplot || "";
+        const idParts = idStr ? idStr.split("_") : [];
+        const locRaw = (item["Lokasi Demplot"] || "").trim();
+        const coords = parseCoordinatesLama(locRaw);
+        const isAktif = isRowAktif(item["Demplot Aktif"]);
+
+        if (!coords) badCount++;
+
+        item._coords = coords;
+        item._locRaw = locRaw;
+        item._isAktif = isAktif;
+        item._idPartsLen = idParts.length;
+        item._kota = idParts.length >= 2 ? idParts[1] : "UNKNOWN";
+        item._kec = idParts.length >= 3 ? idParts[2] : "UNKNOWN";
+        item._kotaUpper = item._kota.toUpperCase();
+        item._kecUpper = item._kec.toUpperCase();
+        item._luasNum = parseDecimalNum(item["Luasan Demplot"]);
+        item._potensiNum = parseDecimalNum(item["Luas Potensi Pasar"] ?? item["Luas Potensi"]);
+        item._searchBlob = `${idStr} ${item["Nama Pemilik Demplot"] || ""} ${item.Keterangan || ""}`.toLowerCase();
+
+        if (idStr) dataById.set(idStr, item);
+    }
+
+    totalBadCoordCount = badCount;
+    return processed;
+}
+
+// ================= GLOBAL ONLOAD =================
+window.onload = async function() {
+    cacheDOM();
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+        isLoggedIn = true;
+        currentUserEmail = session.user.email;
+        showDashboard();
+    } else {
+        isLoggedIn = false;
+        currentUserEmail = "";
+        enterViewerMode();
+    }
+};
+
+// ================= SCRIPT 2: VARIABEL PETA & CACHE =================
+const JATIM_DEFAULT_CENTER = [-7.7, 112.5];
+const JATIM_DEFAULT_ZOOM = 8;
+
+let map, markersLayerGroup;
+let geojsonLayerKab = null, geojsonLayerKec = null;
+let activeGeoScale = null; // 'kab' | 'kec' | null
+let rawGeoJsonKabData = null, rawGeoJsonKecData = null;
+let geoJsonKabLoadPromise = null, geoJsonKecLoadPromise = null;
+let mapModeLoadVersion = 0;
+let geoKeyIndexKab = {}, geoKeyIndexKec = {};
+let currentMapMode = 'demplot';
+let dataAgregasiArea = {};
+let isOnlyAktif = false;
+let currentTabelData = [];
+
+// State Fokus Wilayah
+let selectedRegionKey = null;
+let selectedRegionScale = null; // 'kab' | 'kec' | null
+let selectedRegionLabel = "";
+
+const mapAggCache = new Map();
+const rankTableCache = new Map();
+let lastMarkerSignature = "";
+let lastRankRenderKey = "";
+
+const KEY_ALIASES = {
+    "MALANG": "KABMALANG", "KEDIRI": "KABKEDIRI", "BLITAR": "KABBLITAR", "MADIUN": "KABMADIUN",
+    "MOJOKERTO": "KABMOJOKERTO", "PASURUAN": "KABPASURUAN", "PROBOLINGGO": "KABPROBOLINGGO", "SURABAYA": "KOTASURABAYA",
+    "KOTAMALANG": "KOTAMALANG", "KABMALANG": "KABMALANG", "KOTAKEDIRI": "KOTAKEDIRI", "KABKEDIRI": "KABKEDIRI",
+    "KOTABLITAR": "KOTABLITAR", "KABBLITAR": "KABBLITAR", "KOTAMADIUN": "KOTAMADIUN", "KABMADIUN": "KABMADIUN",
+    "KOTAMOJOKERTO": "KOTAMOJOKERTO", "KABMOJOKERTO": "KABMOJOKERTO", "KOTAPASURUAN": "KOTAPASURUAN", "KABPASURUAN": "KABPASURUAN",
+    "KOTAPROBOLINGGO": "KOTAPROBOLINGGO", "KABPROBOLINGGO": "KABPROBOLINGGO",
+    "NGANJUK_NGGROGOT": "KABNGANJUK_NGRONGGOT", "NGANJUK_NGRONGGOT": "KABNGANJUK_NGRONGGOT"
+};
+
+function invalidateAllDataCaches() {
+    dataVersion++;
+    mapAggCache.clear();
+    rankTableCache.clear();
+    lastTableRenderKey = "";
+    lastMarkerSignature = "";
+    lastRankRenderKey = "";
+}
+
+// ================= NAVIGASI TAB UTAMA =================
+let currentMainTab = 'peta';
+let petaLibsLoaded = false;
+let petaLibsPromise = null;
+
+function loadCssOnce(href) {
+    if ([...document.querySelectorAll('link[rel="stylesheet"]')].some(l => l.href === href || l.href.endsWith(href.split('/').pop()))) return;
+    const el = document.createElement('link');
+    el.rel = 'stylesheet';
+    el.href = href;
+    document.head.appendChild(el);
+}
+
+const dynamicScriptPromises = new Map();
+function loadJsOnce(src) {
+    if (dynamicScriptPromises.has(src)) return dynamicScriptPromises.get(src);
+    const promise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => {
+            script.remove();
+            reject(new Error('Gagal memuat: ' + src));
+        };
+        document.head.appendChild(script);
+    }).catch(error => {
+        dynamicScriptPromises.delete(src);
+        throw error;
+    });
+    dynamicScriptPromises.set(src, promise);
+    return promise;
+}
+
+async function loadPetaLibs() {
+    if (petaLibsLoaded && window.L) return;
+    if (petaLibsPromise) return petaLibsPromise;
+
+    petaLibsPromise = (async () => {
+        loadCssOnce('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
+        loadCssOnce('https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css');
+        loadCssOnce('https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css');
+        loadCssOnce('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
+
+        const tasks = [];
+        if (!window.tailwind) {
+            window.tailwind = { config: { corePlugins: { preflight: false } } };
+            tasks.push(
+                loadJsOnce('https://cdn.tailwindcss.com').then(() => {
+                    if (window.tailwind) {
+                        try { window.tailwind.config = { corePlugins: { preflight: false } }; } catch (e) {}
+                    }
+                })
+            );
+        }
+        if (!window.L) {
+            tasks.push(loadJsOnce('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'));
+        }
+        if (tasks.length > 0) await Promise.all(tasks);
+
+        if (window.L && typeof window.L.markerClusterGroup !== 'function') {
+            try {
+                await loadJsOnce('https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js');
+            } catch (e) {
+                console.warn("Leaflet.markercluster gagal dimuat, fallback ke layerGroup standar:", e);
+            }
+        }
+        petaLibsLoaded = true;
+    })().catch(err => {
+        petaLibsPromise = null;
+        throw err;
+    });
+
+    return petaLibsPromise;
+}
+
+async function switchMainTab(tab) {
+    // Kunci tab Tabel Data bagi pengguna yang belum login
+    if (!isLoggedIn && tab === 'data') {
+        tab = 'peta';
+    }
+    currentMainTab = tab;
+    const requestVersion = ++mapModeLoadVersion;
+
+    if (tab === 'data') {
+        $('tabData').style.borderBottomColor = "#2980b9";
+        $('tabData').style.color = "#2980b9";
+        $('tabPeta').style.borderBottomColor = "transparent";
+        $('tabPeta').style.color = "#7f8c8d";
+        $('viewData').style.display = "block";
+        $('viewPeta').style.display = "none";
+        if (globalData.length > 0) {
+            els.loading.style.display = "none";
+            els.dataTable.style.display = "table";
+            els.controlsBar.style.display = "flex";
+            els.tableFooterInfo.style.display = "block";
+            renderTablePaginated();
+        }
+        return;
+    }
+
+    $('tabData').style.borderBottomColor = "transparent";
+    $('tabData').style.color = "#7f8c8d";
+    $('tabPeta').style.borderBottomColor = "#2980b9";
+    $('tabPeta').style.color = "#2980b9";
+    $('viewData').style.display = "none";
+    $('viewPeta').style.display = "block";
+
+    const loader = $('mapLoader');
+    const needsKec = currentMapMode.includes('kec');
+    const isRankTable = (currentMapMode === 'tabel' || currentMapMode === 'titik');
+    const geoReady = isRankTable || (needsKec ? !!rawGeoJsonKecData : !!rawGeoJsonKabData);
+
+    if (!petaLibsLoaded || !geoReady) {
+        loader.classList.remove('hidden');
+        $('loaderText').innerText = "Menyiapkan peta...";
+    }
+
+    try {
+        await loadPetaLibs();
+        if (requestVersion !== mapModeLoadVersion || currentMainTab !== 'peta') return;
+
+        initMap();
+        setTimeout(() => { if (map) map.invalidateSize(); }, 150);
+
+        if (isRankTable) {
+            renderTabelPeringkat(currentMapMode);
+        } else if (needsKec) {
+            if (!rawGeoJsonKecData) {
+                $('loaderText').innerText = "Mengunduh peta kecamatan...";
+                await fetchGeoJsonKecData();
+            }
+            if (!rawGeoJsonKecData) throw new Error('GeoJSON kecamatan tidak tersedia.');
+            if (requestVersion !== mapModeLoadVersion || currentMainTab !== 'peta') return;
+            renderPetaBerdasarkanMode();
+        } else {
+            if (!rawGeoJsonKabData) {
+                $('loaderText').innerText = "Mengunduh peta kabupaten/kota...";
+                await fetchGeoJsonKabData();
+            }
+            if (!rawGeoJsonKabData) throw new Error('GeoJSON kabupaten/kota tidak tersedia.');
+            if (requestVersion !== mapModeLoadVersion || currentMainTab !== 'peta') return;
+            renderPetaBerdasarkanMode();
+        }
+        if (requestVersion === mapModeLoadVersion) loader.classList.add('hidden');
+    } catch (e) {
+        if (requestVersion === mapModeLoadVersion) {
+            loader.classList.add('hidden');
+            alert("Gagal memuat modul peta: " + e.message);
+        }
+    }
+}
+
+// ================= WILAYAH API (CACHE + ANTI RACE CONDITION) =================
+async function fetchWilayahCached(url) {
+    if (!wilayahRequestCache.has(url)) {
+        const req = fetch(url)
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
+            .catch(err => {
+                wilayahRequestCache.delete(url);
+                throw err;
+            });
+        wilayahRequestCache.set(url, req);
+    }
+    return wilayahRequestCache.get(url);
+}
+
+function populateRegionSelect(selectEl, placeholder, list) {
+    const frag = document.createDocumentFragment();
+    const def = document.createElement("option");
+    def.value = "";
+    def.textContent = placeholder;
+    frag.appendChild(def);
+    for (let i = 0; i < list.length; i++) {
+        const opt = document.createElement("option");
+        opt.value = list[i].id;
+        opt.textContent = list[i].name;
+        frag.appendChild(opt);
+    }
+    selectEl.replaceChildren(frag);
+}
+
+async function ensureProvinsiLoaded() {
+    if (provinsiLoaded) return;
+    if (provinsiLoadPromise) return provinsiLoadPromise;
+    provinsiLoadPromise = loadProvinsi().finally(() => { provinsiLoadPromise = null; });
+    return provinsiLoadPromise;
+}
+
+async function loadProvinsi() {
+    try {
+        const data = await fetchWilayahCached(`${WILAYAH_API}/provinces.json`);
+        populateRegionSelect(els.inp_prov, "Pilih Provinsi...", data);
+        for (let i = 0; i < data.length; i++) {
+            if (data[i].name && data[i].name.toUpperCase().trim() === "JAWA TIMUR") {
+                defaultJatimProvId = String(data[i].id);
+                break;
+            }
+        }
+        provinsiLoaded = true;
+        if (defaultJatimProvId) {
+            els.inp_prov.value = defaultJatimProvId;
+            await loadKota();
+        }
+    } catch (e) {
+        console.error("Gagal memuat provinsi:", e);
+    }
+}
+
+async function loadKota() {
+    const id = els.inp_prov.value;
+    if (!id) {
+        populateRegionSelect(els.inp_kota, "Pilih Provinsi Dulu", []);
+        populateRegionSelect(els.inp_kec, "Pilih Kota Dulu", []);
+        return;
+    }
+    populateRegionSelect(els.inp_kota, "Memuat Kota/Kab...", []);
+    populateRegionSelect(els.inp_kec, "Pilih Kota Dulu", []);
+    try {
+        const data = await fetchWilayahCached(`${WILAYAH_API}/regencies/${id}.json`);
+        if (els.inp_prov.value !== id) return;
+        populateRegionSelect(els.inp_kota, "Pilih Kota/Kab...", data);
+    } catch (e) {
+        console.error("Gagal memuat kota:", e);
+        populateRegionSelect(els.inp_kota, "Gagal memuat kota", []);
+    }
+}
+
+async function loadKecamatan() {
+    const id = els.inp_kota.value;
+    if (!id) {
+        populateRegionSelect(els.inp_kec, "Pilih Kota Dulu", []);
+        return;
+    }
+    populateRegionSelect(els.inp_kec, "Memuat Kecamatan...", []);
+    try {
+        const data = await fetchWilayahCached(`${WILAYAH_API}/districts/${id}.json`);
+        if (els.inp_kota.value !== id) return;
+        populateRegionSelect(els.inp_kec, "Pilih Kecamatan...", data);
+    } catch (e) {
+        console.error("Gagal memuat kecamatan:", e);
+        populateRegionSelect(els.inp_kec, "Gagal memuat kecamatan", []);
+    }
+}
+
+function formatProvinsi(nama) { const kamus = { "JAWA TIMUR":"Jatim" }; return kamus[nama.toUpperCase().trim()] || nama.toLowerCase().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(""); }
+function formatKota(nama) { return nama.toUpperCase().replace("KABUPATEN ","").replace("KOTA ","").replace("KAB. ","").trim().toLowerCase().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(""); }
+function formatKecamatan(nama) { return nama.toLowerCase().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(""); }
+
+// ================= AUTH & ACCESS CONTROL =================
+function updateAuthUI() {
+    if (isLoggedIn) {
+        els.userGreeting.innerHTML = `👤 ${escapeHtml(currentUserEmail)}`;
+        els.btnAddNew.style.display = "";
+        els.btnDownloadFast.style.display = "";
+        els.btnDownloadFull.style.display = "";
+        els.btnBulkUpload.style.display = "";
+        els.btnLogout.style.display = "";
+        els.btnOpenLogin.style.display = "none";
+        els.tabData.style.display = "inline-flex";
+    } else {
+        els.userGreeting.innerHTML = `👁️ Mode Viewer (Publik)`;
+        els.btnAddNew.style.display = "none";
+        els.btnDownloadFast.style.display = "none";
+        els.btnDownloadFull.style.display = "none";
+        els.btnBulkUpload.style.display = "none";
+        els.btnLogout.style.display = "none";
+        els.btnOpenLogin.style.display = "";
+        els.tabData.style.display = "none";
+    }
+}
+
+function openLoginScreen() {
+    els.mainDashboard.style.display = "none";
+    els.loginError.innerText = "";
+    els.btnLogin.innerText = "Masuk Dashboard";
+    els.btnLogin.disabled = false;
+    els.loginContainer.style.display = "block";
+    if (els.login_email) els.login_email.focus();
+}
+
+async function enterViewerMode() {
+    isLoggedIn = false;
+    currentUserEmail = "";
+    els.loginContainer.style.display = "none";
+    els.mainDashboard.style.display = "block";
+    updateAuthUI();
+
+    if (globalData.length === 0) {
+        await Promise.all([loadData(), switchMainTab('peta')]);
+    } else {
+        await switchMainTab('peta');
+        if (currentMapMode === 'tabel' || currentMapMode === 'titik') {
+            renderTabelPeringkat(currentMapMode);
+        } else if (map) {
+            renderPetaBerdasarkanMode();
+        }
+    }
+}
+
+async function doLogin() {
+    const email = els.login_email.value.trim(); const pass = els.login_pass.value;
+    if (!email || !pass) { els.loginError.innerText = "Email dan Password wajib diisi!"; return; }
+    els.btnLogin.innerText = "⏳ Memeriksa..."; els.btnLogin.disabled = true; els.loginError.innerText = "";
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+    if (error) {
+        els.loginError.innerText = "❌ Login Gagal: Cek kembali."; els.btnLogin.innerText = "Masuk Dashboard"; els.btnLogin.disabled = false;
+    } else {
+        isLoggedIn = true;
+        currentUserEmail = data.user.email;
+        els.btnLogin.innerText = "Masuk Dashboard";
+        els.btnLogin.disabled = false;
+        els.loginContainer.style.display = "none";
+        showDashboard();
+    }
+}
+async function doLogout() { if (confirm("Yakin ingin keluar?")) { await supabaseClient.auth.signOut(); window.location.reload(); } }
+
+function showDashboard() {
+    isLoggedIn = true;
+    els.mainDashboard.style.display = "block";
+    updateAuthUI();
+    switchMainTab('data');
+    setTimeout(() => { ensureProvinsiLoaded(); }, 400);
+
+    if (globalData.length > 0) {
+        filteredData = [...globalData];
+        currentPage = 1;
+        allModeLimit = ALL_MODE_CHUNK;
+        lastTableRenderKey = "";
+        els.loading.style.display = "none";
+        els.dataTable.style.display = "table";
+        els.controlsBar.style.display = "flex";
+        els.tableFooterInfo.style.display = "block";
+        renderTablePaginated();
+    } else {
+        loadData();
+    }
+}
+
+function schedulePreloadGeoJsonKab() {
+    if (rawGeoJsonKabData || geoJsonKabLoadPromise) return;
+    setTimeout(() => {
+        if (!rawGeoJsonKabData && !geoJsonKabLoadPromise) {
+            fetchGeoJsonKabData().catch(() => {});
+        }
+    }, 600);
+}
+
+// ================= DATA =================
+async function loadData() {
+    const isTableActive = isLoggedIn && currentMainTab === 'data';
+    if (isTableActive) {
+        els.loading.style.display = "block";
+        els.dataTable.style.display = "none";
+        els.controlsBar.style.display = "none";
+        els.tableFooterInfo.style.display = "none";
+        if (els.loadMoreBar) els.loadMoreBar.style.display = "none";
+    } else if (els.status) {
+        els.status.style.color = "#2980b9";
+        els.status.innerText = "⏳ Memuat data terbaru...";
+    }
+
+    try {
+        const data = await fetchAllDemplotRows(true);
+        globalData = preprocessGlobalData(data);
+        invalidateAllDataCaches();
+        filteredData = [...globalData];
+
+        currentPage = 1;
+        allModeLimit = ALL_MODE_CHUNK;
+        if (els.searchInput) els.searchInput.value = "";
+        if (els.filterStatus) els.filterStatus.value = "all";
+        if (els.filterCoord) els.filterCoord.value = "all";
+        itemsPerPage = els.itemsPerPage.value === "all" ? "all" : (parseInt(els.itemsPerPage.value, 10) || 20);
+
+        if (isLoggedIn) {
+            els.loading.style.display = "none";
+            els.dataTable.style.display = "table";
+            els.controlsBar.style.display = "flex";
+            els.tableFooterInfo.style.display = "block";
+            if (currentMainTab === 'data') {
+                renderTablePaginated();
+            }
+        }
+
+        if (!isTableActive && els.status) {
+            els.status.innerText = "";
+        }
+
+        schedulePreloadGeoJsonKab();
+
+        if (currentMainTab === 'peta') {
+            if (currentMapMode === 'tabel' || currentMapMode === 'titik') renderTabelPeringkat(currentMapMode);
+            else if (map) renderPetaBerdasarkanMode();
+        }
+    } catch (error) {
+        if (isTableActive) els.loading.style.display = "none";
+        if (!isTableActive && els.status) els.status.innerText = "";
+        alert("Error: " + error.message);
+    }
+}
+
+function hasValidCoord(item) {
+    return item && item._coords !== undefined ? !!item._coords : !!parseCoordinatesLama((item && item["Lokasi Demplot"]) || "");
+}
+
+let searchFilterTimer = null;
+function debounceFilterData() {
+    clearTimeout(searchFilterTimer);
+    searchFilterTimer = setTimeout(filterData, 300);
+}
+
+function filterData() {
+    if (!isLoggedIn) return;
+    const query = els.searchInput.value.trim().toLowerCase();
+    const statusFilter = els.filterStatus.value;
+    const coordFilter = els.filterCoord ? els.filterCoord.value : "all";
+    filteredData = globalData.filter(item => {
+        const textMatch = !query || item._searchBlob.includes(query);
+        let statusMatch = true;
+        if (statusFilter === "1") statusMatch = item._isAktif;
+        else if (statusFilter === "0") statusMatch = !item._isAktif;
+        let coordMatch = true;
+        if (coordFilter === "bad") coordMatch = !item._coords;
+        else if (coordFilter === "ok") coordMatch = !!item._coords;
+        return textMatch && statusMatch && coordMatch;
+    });
+    currentPage = 1;
+    allModeLimit = ALL_MODE_CHUNK;
+    renderTablePaginated();
+}
+
+function changeItemsPerPage() {
+    const select = els.itemsPerPage.value;
+    itemsPerPage = select === "all" ? "all" : parseInt(select, 10);
+    currentPage = 1;
+    allModeLimit = ALL_MODE_CHUNK;
+    renderTablePaginated();
+}
+function prevPage() { if (currentPage > 1) { currentPage--; renderTablePaginated(); } }
+function nextPage() {
+    if (itemsPerPage === "all") return;
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    if (currentPage < totalPages) { currentPage++; renderTablePaginated(); }
+}
+
+function loadMoreTableRows() {
+    if (itemsPerPage !== "all") return;
+    allModeLimit += ALL_MODE_CHUNK;
+    renderTablePaginated(true);
+}
+
+function buildTableRowHtml(item) {
+    const photos = (item.Foto || "").split(",").map(s => s.trim()).filter(s => s.startsWith("http")).slice(-4);
+    let photoHtml = "";
+    for (let i = 0; i < photos.length; i++) {
+        const p = photos[i];
+        let id = "";
+        if (p.includes("id=")) id = p.split("id=")[1].split("&")[0];
+        else if (p.includes("/d/")) id = p.split("/d/")[1].split("/")[0];
+        const thumbUrl = id ? `https://drive.google.com/thumbnail?id=${id}&sz=w400` : p;
+        const largeUrl = id ? `https://drive.google.com/thumbnail?id=${id}&sz=w1000` : p;
+        photoHtml += `<img src="${escapeHtml(thumbUrl)}" class="thumb" loading="lazy" decoding="async" alt="Thumbnail foto demplot" onclick="event.stopPropagation();openImageModal('${escapeJsStr(largeUrl)}','${escapeJsStr(p)}')" onerror="this.onerror=null;this.src='https://via.placeholder.com/112x63?text=Err'">`;
+    }
+    const statusBadge = item._isAktif
+        ? "<span style='color:#27ae60;font-weight:700'>🟢 Aktif</span>"
+        : "<span style='color:#c0392b;font-weight:700'>🔴 Tidak Aktif</span>";
+    const coordsParsed = item._coords;
+    const coordOk = !!coordsParsed;
+    const rowClass = coordOk ? "" : " class=\"row-coord-bad\"";
+    const locRaw = item._locRaw;
+    const mapHref = locRaw.startsWith("http") ? locRaw : (coordsParsed ? `https://maps.google.com/?q=${coordsParsed.lat},${coordsParsed.lng}` : "#");
+    const petaCell = coordOk
+        ? `<a class="badge-coord-ok" href="${escapeHtml(mapHref)}" target="_blank" rel="noopener noreferrer" title="Koordinat valid — buka peta">📍</a>`
+        : `<span class="badge-coord-bad" title="${locRaw ? "Format koordinat tidak dikenali: " + escapeHtml(locRaw) : "Lokasi kosong"}">⚠️ ${locRaw && locRaw !== "-" ? "Gagal" : "Kosong"}</span>`;
+    const safeId = escapeHtml(item.ID_Demplot || "");
+    const jsSafeId = escapeJsStr(item.ID_Demplot || "");
+    return `<tr${rowClass}>
+        <td><b>${safeId}</b>${coordOk ? "" : " <span style=\"color:#ea580c;font-size:10px\">⚠</span>"}</td>
+        <td>${escapeHtml(displayValue(item["Nama Pemilik Demplot"], "-"))}</td>
+        <td>${escapeHtml(displayValue(item.Telepon, "-"))}</td>
+        <td align="center">${petaCell}</td>
+        <td align="center">${escapeHtml(displayValue(item["Luasan Demplot"], "0"))}</td>
+        <td align="center">${escapeHtml(displayValue(item["Luas Potensi Pasar"], "0"))}</td>
+        <td align="center" style="color:#d35400;font-weight:700">${escapeHtml(displayValue(item.Hasil_Panen, "-"))}</td>
+        <td align="center" style="color:#8e44ad;font-weight:700">${escapeHtml(displayValue(item.Hasil_Kontrol, "-"))}</td>
+        <td>${statusBadge}</td>
+        <td>${escapeHtml(displayValue(item["Tanggal Tanam"], "-"))}</td>
+        <td>${escapeHtml(displayValue(item["Tanggal Perlakuan 1"], "-"))}</td><td>${escapeHtml(displayValue(item["Tanggal Perlakuan 2"], "-"))}</td>
+        <td>${escapeHtml(displayValue(item["Tanggal Perlakuan 3"], "-"))}</td><td>${escapeHtml(displayValue(item["Tanggal Perlakuan 4"], "-"))}</td>
+        <td>${escapeHtml(displayValue(item["Tanggal Perlakuan 5"], "-"))}</td>
+        <td class="photo-cell">${photoHtml ? `<div class="photo-thumbnails">${photoHtml}</div>` : "-"}</td>
+        <td style="white-space:pre-wrap;font-size:11px">${escapeHtml(displayValue(item.Keterangan, "-"))}</td>
+        <td style="color:#2980b9;font-size:11px;font-weight:700">${escapeHtml(displayValue(item.created_by, "-"))}</td>
+        <td style="color:#7f8c8d;font-size:11px">${escapeHtml(displayValue(item.last_edited, "-"))}</td>
+        <td><button class="btn btn-purple" style="padding:5px 10px" onclick="editData('${jsSafeId}')">✏️ Edit</button></td>
+    </tr>`;
+}
+
+function createTableFragmentFromHtml(htmlString) {
+    const tempBody = document.createElement("tbody");
+    tempBody.innerHTML = htmlString;
+    const frag = document.createDocumentFragment();
+    while (tempBody.firstChild) {
+        frag.appendChild(tempBody.firstChild);
+    }
+    return frag;
+}
+
+function renderTablePaginated(appendAllMode = false) {
+    if (!isLoggedIn) return;
+    const tbody = els.tableBody;
+    const totalItems = filteredData.length;
+    const isAllMode = (itemsPerPage === "all");
+    const qKey = els.searchInput ? els.searchInput.value.trim().toLowerCase() : "";
+    const sKey = els.filterStatus ? els.filterStatus.value : "all";
+    const cKey = els.filterCoord ? els.filterCoord.value : "all";
+    const firstId = totalItems > 0 ? (filteredData[0].ID_Demplot || "") : "";
+    const lastId = totalItems > 0 ? (filteredData[totalItems - 1].ID_Demplot || "") : "";
+    const renderKey = `${dataVersion}|${isAllMode ? "all:" + allModeLimit : itemsPerPage + ":" + currentPage}|${totalItems}|${qKey}|${sKey}|${cKey}|${firstId}|${lastId}`;
+
+    if (!appendAllMode && renderKey === lastTableRenderKey) return;
+    lastTableRenderKey = renderKey;
+
+    if (els.coordAlertBar) {
+        if (totalBadCoordCount > 0) {
+            els.coordAlertBar.style.display = "block";
+            els.coordAlertBar.innerHTML = `⚠️ <b>${totalBadCoordCount}</b> data memiliki lokasi kosong / koordinat gagal (tidak muncul di peta). ` +
+                `<a href="#" onclick="event.preventDefault();if(els.filterCoord){els.filterCoord.value='bad';filterData();}" style="color:#c2410c;text-decoration:underline">Tampilkan hanya yang bermasalah</a> — lalu klik <b>Edit</b> untuk memperbaiki Link Peta / koordinat.`;
+        } else {
+            els.coordAlertBar.style.display = "none";
+            els.coordAlertBar.innerHTML = "";
+        }
+    }
+
+    let startIndex = 0;
+    let endIndex = 0;
+    if (isAllMode) {
+        startIndex = 0;
+        endIndex = Math.min(allModeLimit, totalItems);
+        els.pageInfo.innerText = `Mode Semua (${endIndex}/${totalItems})`;
+        els.btnPrev.disabled = true;
+        els.btnNext.disabled = true;
+    } else {
+        const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+        startIndex = (currentPage - 1) * itemsPerPage;
+        endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+        els.pageInfo.innerText = `Halaman ${currentPage} dari ${totalPages}`;
+        els.btnPrev.disabled = currentPage === 1;
+        els.btnNext.disabled = currentPage === totalPages;
+    }
+
+    els.tableFooterInfo.innerText = `Menampilkan ${totalItems === 0 ? 0 : startIndex + 1} - ${endIndex} dari total ${totalItems} baris data` +
+        (totalBadCoordCount > 0 ? ` · ⚠️ ${totalBadCoordCount} koordinat bermasalah` : "");
+
+    if (els.loadMoreBar) {
+        const remaining = totalItems - endIndex;
+        if (isAllMode && remaining > 0) {
+            els.loadMoreBar.style.display = "block";
+            els.btnLoadMoreRows.innerText = `⬇️ Muat ${Math.min(ALL_MODE_CHUNK, remaining)} Baris Lagi (tersisa ${remaining})`;
+        } else {
+            els.loadMoreBar.style.display = "none";
+        }
+    }
+
+    if (totalItems === 0) {
+        tbody.innerHTML = `<tr><td colspan="20" style="text-align:center;padding:20px;font-weight:700;color:#7f8c8d">Pencarian tidak menemukan hasil.</td></tr>`;
+        lastRenderedCountInAllMode = 0;
+        return;
+    }
+
+    if (appendAllMode && isAllMode && lastRenderedCountInAllMode > 0 && lastRenderedCountInAllMode < endIndex) {
+        const sliceNew = filteredData.slice(lastRenderedCountInAllMode, endIndex);
+        tbody.appendChild(createTableFragmentFromHtml(sliceNew.map(buildTableRowHtml).join("")));
+        lastRenderedCountInAllMode = endIndex;
+        return;
+    }
+
+    const dataToShow = filteredData.slice(startIndex, endIndex);
+    tbody.replaceChildren(createTableFragmentFromHtml(dataToShow.map(buildTableRowHtml).join("")));
+    lastRenderedCountInAllMode = isAllMode ? endIndex : 0;
+}
+
+function openImageModal(largeUrl, originalUrl) { els.fullImage.src = largeUrl; els.originalImageLink.href = originalUrl; els.imageModal.style.display = "block"; }
+function getThumbUrl(url, size = "w400") {
+    if (!url || !url.startsWith("http")) return ""; let id = "";
+    if (url.includes("id=")) id = url.split("id=")[1].split("&")[0]; else if (url.includes("/d/")) id = url.split("/d/")[1].split("/")[0];
+    return id ? `https://drive.google.com/thumbnail?id=${id}&sz=${size}` : url;
+}
+function updateFileLabel() {
+    els.fileLabel.innerText = els.inp_file_foto.files.length > 0 ? `✅ ${els.inp_file_foto.files.length} Foto siap diupload` : "";
+    if (els.inp_file_foto.files.length > 0) markFormDirty();
+}
+function extractDriveFileId(url) {
+    if (!url) return ""; const text = String(url).trim();
+    const match = text.match(/\/d\/([^/?]+)/) || text.match(/[?&]id=([^&]+)/);
+    if (match) return decodeURIComponent(match[1]);
+    if (text && !/^https?:\/\//i.test(text)) return text; return "";
+}
+function renderExistingPhotos() {
+    const container = els.existingPhotos; if (!container) return;
+    const photos = (els.inp_foto.value || "").split(",").map(s => s.trim()).filter(s => s.startsWith("http"));
+    if (photos.length === 0) { container.replaceChildren(); return; }
+    const frag = document.createDocumentFragment();
+    photos.forEach((url, index) => {
+        const wrap = document.createElement("div"); wrap.style.cssText = "position:relative;display:inline-block";
+        const img = document.createElement("img"); img.src = getThumbUrl(url, "w400"); img.className = "thumb"; img.style.cssText = "width:128px;height:72px;object-fit:cover;border-radius:8px;border:1px solid #ddd;cursor:pointer;aspect-ratio:16/9";
+        img.onclick = () => openImageModal(getThumbUrl(url, "w1000") || url, url);
+        img.onerror = function () { this.src = "https://via.placeholder.com/128x72?text=Err"; };
+        const btn = document.createElement("button"); btn.type = "button"; btn.innerHTML = "×"; btn.title = "Hapus foto ini"; btn.style.cssText = "position:absolute;top:-6px;right:-6px;width:22px;height:22px;border:none;border-radius:50%;background:#c0392b;color:#fff;font-weight:700;font-size:14px;line-height:20px;cursor:pointer;padding:0";
+        btn.onclick = (e) => { e.stopPropagation(); deletePhoto(url, index); };
+        wrap.appendChild(img); wrap.appendChild(btn); frag.appendChild(wrap);
+    });
+    container.replaceChildren(frag);
+}
+async function deletePhoto(photoUrl, index) {
+    if (!isLoggedIn) return;
+    if (!confirm("Yakin ingin menghapus foto ini dari Google Drive?")) return;
+    const recordId = isEditMode ? els.inp_id.value.trim() : "";
+    if (!recordId) { removePhotoFromLocalList(photoUrl); return; }
+    const fileId = extractDriveFileId(photoUrl);
+    if (!fileId) { alert("ID foto Google Drive tidak valid."); return; }
+    try {
+        const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+        if (sessionError || !session || !session.access_token) throw new Error("Sesi login tidak valid. Silakan login ulang.");
+        const payload = { action: "delete", accessToken: session.access_token, fileId: fileId, recordId: recordId };
+        const res = await fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, redirect: "follow", body: JSON.stringify(payload) });
+        const result = await res.json();
+        if (result.status !== "success") throw new Error(result.message || "Gagal menghapus foto di Google Drive");
+        removePhotoFromLocalList(photoUrl);
+        const newFoto = els.inp_foto.value || "";
+        const { error: dbError } = await supabaseClient.from("demplot_monitoring").update({ Foto: newFoto, last_edited: currentUserEmail }).eq("ID_Demplot", recordId);
+        if (dbError) throw new Error("Foto terhapus di Drive, tapi gagal update database: " + dbError.message);
+        const item = dataById.get(recordId) || globalData.find(d => d.ID_Demplot === recordId);
+        if (item) item.Foto = newFoto;
+        invalidateAllDataCaches();
+        captureFormSnapshot();
+        renderTablePaginated(); alert("✅ Foto berhasil dihapus dari Google Drive.");
+    } catch (e) { alert("❌ Gagal menghapus foto: " + e.message); }
+}
+function removePhotoFromLocalList(photoUrl) {
+    const photos = (els.inp_foto.value || "").split(",").map(s => s.trim()).filter(s => s.length > 5 && s !== photoUrl);
+    els.inp_foto.value = photos.join(","); renderExistingPhotos();
+}
+
+// ===== PROTEKSI FORM (Unsaved Changes) =====
+let formDirty = false;
+let formSnapshot = "";
+
+function markFormDirty() { formDirty = true; }
+
+function captureFormSnapshot() {
+    const fields = ["inp_pemilik","inp_telp","inp_peta","inp_luas","inp_potensi","inp_hasil_panen","inp_hasil_kontrol",
+                    "inp_tanam","inp_status_aktif","inp_p1","inp_p2","inp_p3","inp_p4","inp_p5","inp_ket","inp_foto"];
+    formSnapshot = fields.map(id => (els[id] ? els[id].value : "")).join("|");
+    formDirty = false;
+}
+
+function isFormDirty() {
+    if (els.inp_file_foto && els.inp_file_foto.files.length > 0) return true;
+    if (!formDirty) return false;
+    const fields = ["inp_pemilik","inp_telp","inp_peta","inp_luas","inp_potensi","inp_hasil_panen","inp_hasil_kontrol",
+                    "inp_tanam","inp_status_aktif","inp_p1","inp_p2","inp_p3","inp_p4","inp_p5","inp_ket","inp_foto"];
+    const current = fields.map(id => (els[id] ? els[id].value : "")).join("|");
+    return current !== formSnapshot;
+}
+
+async function openForm() {
+    if (!isLoggedIn) return;
+    isEditMode = false; els.add_id_group.style.display = "flex"; els.edit_id_group.style.display = "none";
+    ["inp_id","inp_pemilik","inp_telp","inp_peta","inp_luas","inp_tanam","inp_p1","inp_p2","inp_p3","inp_p4","inp_p5","inp_foto","inp_ket","inp_potensi","inp_hasil_panen","inp_hasil_kontrol"].forEach(id => { els[id].value = ""; });
+    els.inp_file_foto.value = ""; els.inp_status_aktif.value = "1"; els.fileLabel.innerText = ""; els.inp_created_by.value = ""; renderExistingPhotos();
+    els.formTitle.innerText = "Tambah Data Baru (Auto ID)"; els.btnHapus.style.display = "none"; els.inputModal.style.display = "block";
+    captureFormSnapshot();
+
+    await ensureProvinsiLoaded();
+    if (defaultJatimProvId) {
+        els.inp_prov.value = defaultJatimProvId;
+        await loadKota();
+    } else {
+        els.inp_prov.selectedIndex = 0;
+        populateRegionSelect(els.inp_kota, "Pilih Provinsi Dulu", []);
+        populateRegionSelect(els.inp_kec, "Pilih Kota Dulu", []);
+    }
+}
+
+function editData(idDemplot) {
+    if (!isLoggedIn) return;
+    isEditMode = true;
+    const item = dataById.get(idDemplot) || globalData.find(d => d.ID_Demplot === idDemplot);
+    if (!item) return;
+    els.add_id_group.style.display = "none"; els.edit_id_group.style.display = "block";
+    els.inp_id.value = item.ID_Demplot || "";
+    els.inp_pemilik.value = item["Nama Pemilik Demplot"] || "";
+    els.inp_telp.value = item.Telepon || "";
+    els.inp_peta.value = item["Lokasi Demplot"] || "";
+    els.inp_luas.value = displayValue(item["Luasan Demplot"], "");
+    els.inp_tanam.value = item["Tanggal Tanam"] || "";
+    els.inp_p1.value = item["Tanggal Perlakuan 1"] || "";
+    els.inp_p2.value = item["Tanggal Perlakuan 2"] || "";
+    els.inp_p3.value = item["Tanggal Perlakuan 3"] || "";
+    els.inp_p4.value = item["Tanggal Perlakuan 4"] || "";
+    els.inp_p5.value = item["Tanggal Perlakuan 5"] || "";
+    els.inp_foto.value = item.Foto || "";
+    els.inp_ket.value = item.Keterangan || "";
+    els.inp_file_foto.value = "";
+    els.inp_potensi.value = displayValue(item["Luas Potensi Pasar"], "");
+    els.inp_hasil_panen.value = displayValue(item.Hasil_Panen, "");
+    els.inp_hasil_kontrol.value = displayValue(item.Hasil_Kontrol, "");
+    els.inp_status_aktif.value = item._isAktif ? "1" : "0";
+    els.fileLabel.innerText = "";
+    els.inp_created_by.value = item.created_by || "";
+    renderExistingPhotos();
+    els.formTitle.innerText = "Edit Data Demplot"; els.btnHapus.style.display = "block"; els.inputModal.style.display = "block";
+    captureFormSnapshot();
+}
+
+function closeForm() {
+    if (isFormDirty()) {
+        if (!confirm("Ada perubahan yang belum disimpan.\nYakin ingin menutup form?")) return;
+    }
+    els.inputModal.style.display = "none";
+    if (els.inp_file_foto) els.inp_file_foto.value = "";
+    formDirty = false;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const formFields = ["inp_pemilik","inp_telp","inp_peta","inp_luas","inp_potensi","inp_hasil_panen","inp_hasil_kontrol",
+                        "inp_tanam","inp_status_aktif","inp_p1","inp_p2","inp_p3","inp_p4","inp_p5","inp_ket"];
+    formFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener("input", markFormDirty);
+            el.addEventListener("change", markFormDirty);
+        }
+    });
+});
+
+window.addEventListener("beforeunload", (e) => {
+    if (els.inputModal && els.inputModal.style.display === "block" && isFormDirty()) {
+        e.preventDefault();
+        e.returnValue = "";
+    }
+});
+
+function compressImage(file, maxWidth, quality) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader(); reader.readAsDataURL(file);
+        reader.onload = e => {
+            const img = new Image(); img.src = e.target.result;
+            img.onload = () => {
+                const canvas = document.createElement("canvas"); let w = img.width, h = img.height;
+                if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
+                canvas.width = w; canvas.height = h; canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+                resolve({ base64_utuh: canvas.toDataURL("image/jpeg", quality), type: "image/jpeg", name: file.name.replace(/\.[^/.]+$/, "") + ".jpg" });
+            }; img.onerror = reject;
+        }; reader.onerror = reject;
+    });
+}
+async function uploadToDrive(file, idDemplot) {
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+    if (sessionError || !session || !session.access_token) throw new Error("Sesi login tidak valid. Silakan login ulang.");
+    const compressed = await compressImage(file, 1024, 0.7);
+    const payload = { action: "upload", accessToken: session.access_token, name: `IMG_${idDemplot}_${Date.now()}.jpg`, type: compressed.type, base64: compressed.base64_utuh };
+    const res = await fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, redirect: "follow", body: JSON.stringify(payload) });
+    const result = await res.json();
+    if (result.status === "success") return result.url; throw new Error(result.message || "Upload gagal");
+}
+function extractSmartCoordinates(inputUrl) {
+    if (!inputUrl) return "-"; const clean = inputUrl.toString().trim(); if (!clean || clean === "-") return "-";
+    const parsed = parseCoordinatesLama(clean);
+    if (parsed) return `https://maps.google.com/?q=${parsed.lat},${parsed.lng}`;
+    const match = clean.match(/([-]?\d{1,3}[.,]\d+)[^\d-]+([-]?\d{1,3}[.,]\d+)/);
+    if (match) return "https://maps.google.com/?q=" + match[1].replace(",", ".") + "," + match[2].replace(",", ".");
+    return clean;
+}
+function sanitizeText(text) { if (!text) return null; return text.toString().replace(/"/g, "'").replace(/\n/g, " ").trim(); }
+
+async function getNextDemplotId(prefix) {
+    let maxSeq = 0;
+    const prefixLower = prefix.toLowerCase();
+    globalData.forEach(d => {
+        if (d.ID_Demplot && d.ID_Demplot.toLowerCase().startsWith(prefixLower)) {
+            const num = parseInt(d.ID_Demplot.slice(prefix.length), 10);
+            if (!isNaN(num) && num > maxSeq) maxSeq = num;
+        }
+    });
+    const { data: dbIds } = await supabaseClient
+        .from("demplot_monitoring")
+        .select("ID_Demplot")
+        .ilike("ID_Demplot", `${prefix}%`);
+    if (dbIds && dbIds.length > 0) {
+        dbIds.forEach(d => {
+            if (d.ID_Demplot && d.ID_Demplot.toLowerCase().startsWith(prefixLower)) {
+                const num = parseInt(d.ID_Demplot.slice(prefix.length), 10);
+                if (!isNaN(num) && num > maxSeq) maxSeq = num;
+            }
+        });
+    }
+    return prefix + (maxSeq + 1).toString().padStart(3, "0");
+}
+
+async function saveData() {
+    if (!isLoggedIn) return;
+    let finalID = "";
+    let prefix = "";
+    if (!isEditMode) {
+        if (!els.inp_prov.value || !els.inp_kota.value || !els.inp_kec.value) { alert("❌ Provinsi, Kota/Kabupaten, dan Kecamatan WAJIB dipilih!"); return; }
+        const prov = formatProvinsi(els.inp_prov.options[els.inp_prov.selectedIndex].text);
+        const kota = formatKota(els.inp_kota.options[els.inp_kota.selectedIndex].text);
+        const kec = formatKecamatan(els.inp_kec.options[els.inp_kec.selectedIndex].text);
+        prefix = `${prov}_${kota}_${kec}_`;
+    } else {
+        finalID = els.inp_id.value.trim();
+        if (!finalID) { alert("❌ Terjadi kesalahan pada ID Demplot!"); return; }
+    }
+
+    const originalCreator = els.inp_created_by.value;
+    let finalPhotoLinks = els.inp_foto.value ? els.inp_foto.value.split(",").map(s => s.trim()).filter(s => s.length > 5) : [];
+
+    els.btnSimpan.innerText = "⏳ Menyusun Data..."; els.btnSimpan.disabled = true;
+    try {
+        if (!isEditMode) {
+            finalID = await getNextDemplotId(prefix);
+        }
+        if (els.inp_file_foto.files.length > 0) {
+            els.btnSimpan.innerText = "⏳ Mengompres Foto & Upload...";
+            for (let i = 0; i < els.inp_file_foto.files.length; i++) { finalPhotoLinks.push(await uploadToDrive(els.inp_file_foto.files[i], finalID)); }
+        }
+        const finalFotoString = finalPhotoLinks.join(","); els.inp_foto.value = finalFotoString; els.btnSimpan.innerText = "⏳ Menyimpan ke Supabase...";
+        const payload = {
+            "ID_Demplot": finalID,
+            "Nama Pemilik Demplot": sanitizeText(els.inp_pemilik.value) || "-",
+            "Telepon": els.inp_telp.value.trim(),
+            "Lokasi Demplot": extractSmartCoordinates(els.inp_peta.value.trim()),
+            "Luasan Demplot": normalizeDecimalInput(els.inp_luas.value),
+            "Luas Potensi Pasar": normalizeDecimalInput(els.inp_potensi.value) || null,
+            "Hasil_Panen": normalizeDecimalInput(els.inp_hasil_panen.value) || null,
+            "Hasil_Kontrol": normalizeDecimalInput(els.inp_hasil_kontrol.value) || null,
+            "Demplot Aktif": parseInt(els.inp_status_aktif.value, 10) || 0,
+            "Tanggal Tanam": els.inp_tanam.value || null,
+            "Tanggal Perlakuan 1": els.inp_p1.value || null,
+            "Tanggal Perlakuan 2": els.inp_p2.value || null,
+            "Tanggal Perlakuan 3": els.inp_p3.value || null,
+            "Tanggal Perlakuan 4": els.inp_p4.value || null,
+            "Tanggal Perlakuan 5": els.inp_p5.value || null,
+            "Foto": finalFotoString,
+            "Keterangan": sanitizeText(els.inp_ket.value) || "-",
+            "created_by": isEditMode ? (originalCreator || null) : currentUserEmail,
+            "last_edited": currentUserEmail
+        };
+
+        if (!isEditMode) {
+            let { error } = await supabaseClient.from("demplot_monitoring").insert([payload]);
+            if (error && (error.code === "23505" || /duplicate key/i.test(error.message))) {
+                finalID = await getNextDemplotId(prefix);
+                payload.ID_Demplot = finalID;
+                const retry = await supabaseClient.from("demplot_monitoring").insert([payload]);
+                error = retry.error;
+            }
+            if (error) throw new Error(error.message);
+        } else {
+            const { error } = await supabaseClient.from("demplot_monitoring").upsert([payload]);
+            if (error) throw new Error(error.message);
+        }
+
+        if (els.inp_file_foto) els.inp_file_foto.value = "";
+        formDirty = false;
+        alert(`✅ Data Tersimpan!\n\nID Anda:\n${finalID}`); closeForm(); loadData();
+    } catch (e) { alert("❌ ERROR: " + e.message); } finally { els.btnSimpan.innerText = "💾 Simpan Data"; els.btnSimpan.disabled = false; }
+}
+
+function promptDelete() {
+    if (!isLoggedIn) return;
+    targetDeleteId = els.inp_id.value.trim(); if (!targetDeleteId) return;
+    els.del_target_id.innerText = targetDeleteId; els.del_password.value = ""; els.deleteModal.style.display = "block";
+}
+async function executeDelete() {
+    if (!isLoggedIn) return;
+    const pass = els.del_password.value; if (!pass) { alert("Password wajib diisi!"); return; }
+    els.btnConfirmDelete.innerText = "⏳ Verifikasi..."; els.btnConfirmDelete.disabled = true;
+    try {
+        const { error: authError } = await supabaseClient.auth.signInWithPassword({ email: currentUserEmail, password: pass });
+        if (authError) throw new Error("Password salah! Anda tidak berhak menghapus data ini.");
+        els.btnConfirmDelete.innerText = "⏳ Menghapus...";
+        const { error } = await supabaseClient.from("demplot_monitoring").delete().eq("ID_Demplot", targetDeleteId);
+        if (error) throw new Error(error.message);
+        alert("✅ Data Berhasil Dihapus Permanen!");
+        els.deleteModal.style.display = "none";
+        if (els.inp_file_foto) els.inp_file_foto.value = "";
+        formDirty = false;
+        closeForm();
+        loadData();
+    } catch (e) { alert("❌ GAGAL: " + e.message); } finally { els.btnConfirmDelete.innerText = "🗑️ Verifikasi & Hapus"; els.btnConfirmDelete.disabled = false; }
+}
+
+// ===== EXCEL & BULK =====
+async function fetchWithTimeout(url, timeoutMs = 8000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, { signal: controller.signal });
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+async function getImageBase64(url) {
+    const proxies = [
+        "https://wsrv.nl/?url=",
+        "https://api.allorigins.win/raw?url=",
+        "https://api.codetabs.com/v1/proxy?quest="
+    ];
+    for (const proxy of proxies) {
+        try {
+            const res = await fetchWithTimeout(proxy + encodeURIComponent(url), 8000);
+            if (res.ok) {
+                const blob = await res.blob();
+                if (blob.size > 0 && blob.type.startsWith("image/")) {
+                    return await new Promise(resolve => {
+                        const r = new FileReader();
+                        r.onloadend = () => resolve(r.result);
+                        r.readAsDataURL(blob);
+                    });
+                }
+            }
+        } catch (e) {}
+    }
+    return null;
+}
+
+async function downloadExcel(withImages) {
+    if (!isLoggedIn) return;
+    els.btnDownloadFast.disabled = true; els.btnDownloadFull.disabled = true;
+    const activeBtn = withImages ? els.btnDownloadFull : els.btnDownloadFast; activeBtn.innerText = "⏳ Loading...";
+    try {
+        await ensureExcelJS(); await ensureFileSaver();
+        const wb = new ExcelJS.Workbook(); const ws = wb.addWorksheet("Monitoring");
+        ws.columns = [
+            { header: "ID", key: "id" }, { header: "Pemilik", key: "pm" }, { header: "Telepon", key: "hp" }, { header: "Link Peta", key: "loc" },
+            { header: "Luas (Ha)", key: "ls" }, { header: "Luas Potensi Pasar (Ha)", key: "pot" }, { header: "Hasil Panen (Ton/Ha)", key: "h_panen" }, { header: "Hasil Kontrol (Ton/Ha)", key: "h_kontrol" },
+            { header: "Status", key: "sts" }, { header: "Tgl Tanam", key: "tg" }, { header: "P1", key: "p1" }, { header: "P2", key: "p2" }, { header: "P3", key: "p3" }, { header: "P4", key: "p4" }, { header: "P5", key: "p5" },
+            { header: "Keterangan", key: "kt" }, { header: "Pembuat Data", key: "cb" }, { header: "Editor Terakhir", key: "pt" },
+            { header: "Foto 1", key: "f1" }, { header: "Foto 2", key: "f2" }, { header: "Foto 3", key: "f3" }, { header: "Foto 4", key: "f4" }
+        ];
+        const totalRows = globalData.length;
+        for (let idx = 0; idx < totalRows; idx++) {
+            const item = globalData[idx];
+            if (withImages && idx % 5 === 0) {
+                activeBtn.innerText = `⏳ Foto (${idx + 1}/${totalRows})...`;
+            }
+            const statusTeks = item._isAktif ? "Aktif" : "Tidak Aktif";
+            const row = ws.addRow({
+                id: item.ID_Demplot, pm: item["Nama Pemilik Demplot"], hp: item.Telepon, ls: item["Luasan Demplot"], pot: item["Luas Potensi Pasar"], h_panen: item.Hasil_Panen, h_kontrol: item.Hasil_Kontrol,
+                sts: statusTeks, tg: item["Tanggal Tanam"], p1: item["Tanggal Perlakuan 1"], p2: item["Tanggal Perlakuan 2"], p3: item["Tanggal Perlakuan 3"], p4: item["Tanggal Perlakuan 4"], p5: item["Tanggal Perlakuan 5"],
+                kt: item.Keterangan, cb: item.created_by, pt: item.last_edited
+            });
+            if (withImages) row.height = 70;
+            if (item["Lokasi Demplot"] && item["Lokasi Demplot"].startsWith("http")) { const cell = row.getCell(4); cell.value = { text: "Buka Peta", hyperlink: item["Lokasi Demplot"].trim() }; cell.font = { color: { argb: "0000FF" }, underline: true }; } else { row.getCell(4).value = item["Lokasi Demplot"] || "-"; }
+            const photos = (item.Foto || "").split(",").map(s => s.trim()).filter(s => s.startsWith("http")).slice(-4);
+            const imageResults = withImages
+                ? await Promise.all(photos.map(pUrl => getImageBase64(getThumbUrl(pUrl, "w200"))))
+                : [];
+            for (let i = 0; i < photos.length; i++) {
+                const pUrl = photos[i];
+                if (withImages) {
+                    const b64 = imageResults[i];
+                    if (b64) {
+                        let ext = "png";
+                        if (b64.includes("jpeg") || b64.includes("jpg")) ext = "jpeg";
+                        else if (b64.includes("gif")) ext = "gif";
+                        const imageId = wb.addImage({ base64: b64.split(",")[1] || b64, extension: ext });
+                        ws.addImage(imageId, { tl: { col: 18 + i + 0.1, row: row.number - 1 + 0.1 }, ext: { width: 80, height: 80 }, hyperlinks: { hyperlink: pUrl } });
+                    } else {
+                        const cell = row.getCell(19 + i);
+                        cell.value = { text: "Buka Foto", hyperlink: pUrl };
+                        cell.font = { color: { argb: "0000FF" }, underline: true };
+                    }
+                } else {
+                    const cell = row.getCell(19 + i);
+                    cell.value = { text: "Buka Foto", hyperlink: pUrl };
+                    cell.font = { color: { argb: "0000FF" }, underline: true };
+                }
+            }
+        }
+        ws.columns.forEach(col => { if (["Foto 1","Foto 2","Foto 3","Foto 4"].includes(col.header)) { col.width = 14; return; } let maxLen = 0; col.eachCell({ includeEmpty: true }, cell => { let len = 0; if (cell.value) { if (typeof cell.value === "object" && cell.value.text) len = cell.value.text.length; else len = Math.max(...cell.value.toString().split("\n").map(l => l.length)); } if (len > maxLen) maxLen = len; }); col.width = maxLen < 10 ? 10 : Math.min(maxLen + 3, 40); });
+        ws.eachRow(row => { row.eachCell(cell => { cell.alignment = { wrapText: true, vertical: "middle", horizontal: "left" }; }); });
+        activeBtn.innerText = "⏳ Menyimpan..."; const buf = await wb.xlsx.writeBuffer(); saveAs(new Blob([buf]), withImages ? "Demplot_Lengkap.xlsx" : "Demplot.xlsx");
+    } catch (e) { alert("Error Excel: " + e.message); } finally { els.btnDownloadFast.innerText = "⚡ Excel Cepat"; els.btnDownloadFast.disabled = false; els.btnDownloadFull.innerText = "🖼️ Excel Full"; els.btnDownloadFull.disabled = false; }
+}
+
+function isValidDate(dateString) { if (!dateString) return true; if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return false; const d = new Date(dateString); const t = d.getTime(); if (!t && t !== 0) return false; return d.toISOString().slice(0, 10) === dateString; }
+async function uploadBulkExcel(event) {
+    if (!isLoggedIn) { event.target.value = ""; return; }
+    const file = event.target.files[0]; if (!file) return;
+    els.status.style.color = "orange"; els.status.innerText = "⏳ Memvalidasi, Memilah, & Membersihkan Data..."; let errorListHtml = ""; let hasError = false;
+    try {
+        await ensureExcelJS();
+        const dbData = await fetchAllDemplotRows(false);
+        const existingById = new Map((dbData || []).map(item => [(item.ID_Demplot || "").toLowerCase().trim(), item]));
+        const wb = new ExcelJS.Workbook(); await wb.xlsx.load(await file.arrayBuffer()); const ws = wb.worksheets[0]; const colMap = {};
+        ws.getRow(1).eachCell((cell, colNum) => {
+            const txt = (cell.text || "").toLowerCase().trim();
+            if (txt === "id") colMap.id = colNum; else if (txt === "pemilik") colMap.pemilik = colNum; else if (txt === "telepon") colMap.telp = colNum; else if (txt === "link peta") colMap.peta = colNum; else if (txt === "luas (ha)" || txt === "luas") colMap.luas = colNum; else if (txt.includes("potensi")) colMap.potensi = colNum; else if (txt.includes("panen")) colMap.hasil_panen = colNum; else if (txt.includes("kontrol")) colMap.hasil_kontrol = colNum; else if (txt.includes("status") || txt === "aktif") colMap.status = colNum; else if (txt.includes("tgl tanam") || txt === "tanam") colMap.tanam = colNum; else if (txt === "keterangan") colMap.ket = colNum; else if (txt === "p1") colMap.p1 = colNum; else if (txt === "p2") colMap.p2 = colNum; else if (txt === "p3") colMap.p3 = colNum; else if (txt === "p4") colMap.p4 = colNum; else if (txt === "p5") colMap.p5 = colNum; else if (txt === "foto 1") colMap.f1 = colNum; else if (txt === "foto 2") colMap.f2 = colNum; else if (txt === "foto 3") colMap.f3 = colNum; else if (txt === "foto 4") colMap.f4 = colNum;
+        });
+        if (!colMap.id) throw new Error("Kolom 'ID' tidak ditemukan di baris pertama Excel."); const payload = [];
+        ws.eachRow((row, rowNum) => {
+            if (rowNum <= 1) return; let rowHasError = false;
+            const getLink = idx => {
+                if (!idx) return null; const cell = row.getCell(idx); if (cell.value && typeof cell.value === "object" && cell.value.hyperlink) return cell.value.hyperlink;
+                if (cell.value instanceof Date) { const d = cell.value; return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+                let t = cell.text ? cell.text.trim() : ""; if (!t || t === "-" || t.toLowerCase() === "buka foto" || t.toLowerCase() === "buka peta") return null;
+                if (t.toUpperCase().includes("GMT")) { const parsed = new Date(t); if (!isNaN(parsed.getTime())) { return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`; } } return t;
+            };
+            const idExcel = getLink(colMap.id); let isEmpty = true; row.eachCell({ includeEmpty: false }, () => { isEmpty = false; }); if (isEmpty) return;
+            if (!idExcel) { hasError = true; errorListHtml += `<div class="error-item"><b>Baris ${rowNum}:</b> Kolom ID Demplot kosong. Baris ini dilewati.</div>`; return; }
+            const tglTanam = getLink(colMap.tanam); const p1 = getLink(colMap.p1), p2 = getLink(colMap.p2), p3 = getLink(colMap.p3); const p4 = getLink(colMap.p4), p5 = getLink(colMap.p5);
+            if (!isValidDate(tglTanam)) { rowHasError = true; errorListHtml += `<div class="error-item"><b>Baris ${rowNum} (ID: ${escapeHtml(idExcel)}):</b> Format Tanggal Tanam salah.</div>`; }
+            if (!isValidDate(p1)) { rowHasError = true; errorListHtml += `<div class="error-item"><b>Baris ${rowNum} (ID: ${escapeHtml(idExcel)}):</b> Format P1 salah.</div>`; }
+            if (!isValidDate(p2)) { rowHasError = true; errorListHtml += `<div class="error-item"><b>Baris ${rowNum} (ID: ${escapeHtml(idExcel)}):</b> Format P2 salah.</div>`; }
+            if (!isValidDate(p3)) { rowHasError = true; errorListHtml += `<div class="error-item"><b>Baris ${rowNum} (ID: ${escapeHtml(idExcel)}):</b> Format P3 salah.</div>`; }
+            if (!isValidDate(p4)) { rowHasError = true; errorListHtml += `<div class="error-item"><b>Baris ${rowNum} (ID: ${escapeHtml(idExcel)}):</b> Format P4 salah.</div>`; }
+            if (!isValidDate(p5)) { rowHasError = true; errorListHtml += `<div class="error-item"><b>Baris ${rowNum} (ID: ${escapeHtml(idExcel)}):</b> Format P5 salah.</div>`; }
+            if (rowHasError) { hasError = true; return; }
+
+            const exist = existingById.get((idExcel || "").toLowerCase().trim());
+            let finalPemilik = "-", finalTelp = "-", finalLokasi = "-";
+
+            const hasExistingIdentity = exist && (
+                (exist["Nama Pemilik Demplot"] && exist["Nama Pemilik Demplot"].trim() !== "" && exist["Nama Pemilik Demplot"].trim() !== "-") ||
+                (exist.Telepon && exist.Telepon.trim() !== "" && exist.Telepon.trim() !== "-") ||
+                (exist["Lokasi Demplot"] && exist["Lokasi Demplot"].trim() !== "" && exist["Lokasi Demplot"].trim() !== "-")
+            );
+
+            if (hasExistingIdentity) {
+                finalPemilik = exist["Nama Pemilik Demplot"] || "-";
+                finalTelp = exist.Telepon || "-";
+                finalLokasi = exist["Lokasi Demplot"] || "-";
+            } else {
+                finalPemilik = sanitizeText(getLink(colMap.pemilik)) || "-";
+                finalTelp = getLink(colMap.telp) || "-";
+                const rawPeta = getLink(colMap.peta);
+                finalLokasi = rawPeta ? extractSmartCoordinates(rawPeta) : "-";
+            }
+
+            const cleanNum = (raw, fallback) => { if (raw) { const c = raw.toString().replace(/,/g, ".").replace(/[^0-9.]/g, ""); return (c === "" || c === ".") ? fallback : c; } return fallback; };
+            const cleanLuas = cleanNum(getLink(colMap.luas), exist ? (exist["Luasan Demplot"] || "0") : "0"); const cleanPotensi = cleanNum(getLink(colMap.potensi), exist ? exist["Luas Potensi Pasar"] : null); const cleanPanen = cleanNum(getLink(colMap.hasil_panen), exist ? exist.Hasil_Panen : null); const cleanKontrol = cleanNum(getLink(colMap.hasil_kontrol), exist ? exist.Hasil_Kontrol : null);
+            let cleanStatus = 1; const rawStatus = getLink(colMap.status);
+            if (rawStatus) { const s = rawStatus.toString().toLowerCase().trim(); if (["0","tidak aktif","tidak","nonaktif","inactive"].includes(s)) cleanStatus = 0; } else if (exist && exist["Demplot Aktif"] != null) { cleanStatus = exist["Demplot Aktif"]; }
+            const excelPhotos = []; ["f1","f2","f3","f4"].forEach(f => { if (colMap[f]) { const l = getLink(colMap[f]); if (l && l.startsWith("http")) excelPhotos.push(l); } });
+            const dbPhotos = (exist && exist.Foto) ? exist.Foto.split(",").map(s => s.trim()).filter(s => s.length > 5) : []; const finalFoto = [...new Set([...dbPhotos, ...excelPhotos])].join(",");
+            payload.push({
+                "ID_Demplot": exist ? exist.ID_Demplot : idExcel, "Nama Pemilik Demplot": finalPemilik, "Telepon": finalTelp, "Lokasi Demplot": finalLokasi, "Luasan Demplot": cleanLuas, "Luas Potensi Pasar": cleanPotensi, "Hasil_Panen": cleanPanen, "Hasil_Kontrol": cleanKontrol,
+                "Demplot Aktif": cleanStatus, "Tanggal Tanam": tglTanam || (exist ? exist["Tanggal Tanam"] : null), "Tanggal Perlakuan 1": p1 || (exist ? exist["Tanggal Perlakuan 1"] : null), "Tanggal Perlakuan 2": p2 || (exist ? exist["Tanggal Perlakuan 2"] : null), "Tanggal Perlakuan 3": p3 || (exist ? exist["Tanggal Perlakuan 3"] : null), "Tanggal Perlakuan 4": p4 || (exist ? exist["Tanggal Perlakuan 4"] : null), "Tanggal Perlakuan 5": p5 || (exist ? exist["Tanggal Perlakuan 5"] : null),
+                "Keterangan": sanitizeText(getLink(colMap.ket)) || (exist ? exist.Keterangan : "-"), "Foto": finalFoto, "created_by": (exist && exist.created_by) ? exist.created_by : currentUserEmail, "last_edited": currentUserEmail
+            });
+        });
+        if (hasError) { els.uploadErrorList.innerHTML = errorListHtml; els.uploadErrorModal.style.display = "block"; }
+        if (payload.length > 0) {
+            const batchSize = 200;
+            for (let i = 0; i < payload.length; i += batchSize) {
+                const batch = payload.slice(i, i + batchSize);
+                els.status.innerText = `⏳ Menyimpan ${Math.min(i + batch.length, payload.length)} / ${payload.length} data valid...`;
+                const { error } = await supabaseClient.from("demplot_monitoring").upsert(batch);
+                if (error) throw new Error(error.message);
+            }
+            els.status.style.color = hasError ? "orange" : "green"; els.status.innerText = hasError ? `⚠️ Sebagian Sukses (${payload.length} disimpan)` : "✅ Semua Data Sukses Diunggah!"; loadData();
+        } else { els.status.style.color = "red"; els.status.innerText = "❌ Tidak ada data valid yang bisa disimpan."; }
+    } catch (e) { alert("Error Bulk: " + e.message); els.status.innerText = ""; } finally { event.target.value = ""; }
+}
+
+// ================= CACHE INDEXEDDB BER-VERSI =================
+const GEO_CACHE_DB = "CalcindoGeoCacheDB";
+const GEO_CACHE_STORE = "geojson_store";
+const GEO_KEC_VERSION = "v2";
+const GEO_KEC_PREFIX = "jatim_subdistricts_";
+const GEO_KEC_KEY = GEO_KEC_PREFIX + GEO_KEC_VERSION;
+
+function openGeoCacheDB() {
+    return new Promise((resolve, reject) => {
+        if (!window.indexedDB) return reject(new Error("IndexedDB tidak didukung"));
+        const req = indexedDB.open(GEO_CACHE_DB, 1);
+        req.onupgradeneeded = e => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(GEO_CACHE_STORE)) {
+                db.createObjectStore(GEO_CACHE_STORE);
+            }
+        };
+        req.onsuccess = e => resolve(e.target.result);
+        req.onerror = e => reject(e.target.error);
+    });
+}
+
+async function getCachedGeoJson(key) {
+    try {
+        const db = await openGeoCacheDB();
+        return await new Promise(resolve => {
+            const tx = db.transaction(GEO_CACHE_STORE, "readonly");
+            const req = tx.objectStore(GEO_CACHE_STORE).get(key);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => resolve(null);
+        });
+    } catch (e) { return null; }
+}
+
+async function setCachedGeoJson(key, data) {
+    try {
+        const db = await openGeoCacheDB();
+        await new Promise(resolve => {
+            const tx = db.transaction(GEO_CACHE_STORE, "readwrite");
+            const store = tx.objectStore(GEO_CACHE_STORE);
+            const keysReq = store.getAllKeys();
+            keysReq.onsuccess = () => {
+                (keysReq.result || []).forEach(existingKey => {
+                    if (typeof existingKey === "string" && existingKey.startsWith(GEO_KEC_PREFIX) && existingKey !== key) {
+                        store.delete(existingKey);
+                    }
+                });
+                store.put(data, key);
+            };
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => resolve();
+        });
+    } catch (e) {}
+}
+
+// ================= SCRIPT 2: LOGIKA PETA TEROPTIMASI =================
+function initMap() {
+    if (!map) {
+        map = L.map('map', { 
+            zoomControl: false,
+            preferCanvas: true 
+        }).setView(JATIM_DEFAULT_CENTER, JATIM_DEFAULT_ZOOM);
+        L.control.zoom({ position: 'topright' }).addTo(map);
+        L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { attribution: '&copy; Google Maps', maxZoom: 20 }).addTo(map);
+
+        if (typeof L.markerClusterGroup === 'function') {
+            markersLayerGroup = L.markerClusterGroup({
+                chunkedLoading: true,
+                maxClusterRadius: 50,
+                disableClusteringAtZoom: 15,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: false
+            }).addTo(map);
+        } else {
+            markersLayerGroup = L.layerGroup().addTo(map);
+        }
+
+        map.on('zoomend', updateFocusBarUI);
+    }
+}
+
+async function fetchGeoJsonKabData() {
+    if (rawGeoJsonKabData) return rawGeoJsonKabData;
+    if (geoJsonKabLoadPromise) return geoJsonKabLoadPromise;
+
+    geoJsonKabLoadPromise = (async () => {
+        const url = 'https://adlsyyualatelwwkftyf.supabase.co/storage/v1/object/public/assets/Kabupaten-Kota%20(Provinsi%20Jawa%20Timur).geojson';
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Gagal load GeoJSON Kabupaten/Kota");
+        rawGeoJsonKabData = await res.json();
+        buildGeoIndexKab();
+        return rawGeoJsonKabData;
+    })();
+
+    try {
+        return await geoJsonKabLoadPromise;
+    } catch (e) {
+        rawGeoJsonKabData = null;
+        console.error(e);
+        throw e;
+    } finally {
+        geoJsonKabLoadPromise = null;
+    }
+}
+
+async function fetchGeoJsonKecData() {
+    if (rawGeoJsonKecData) return rawGeoJsonKecData;
+    if (geoJsonKecLoadPromise) return geoJsonKecLoadPromise;
+
+    geoJsonKecLoadPromise = (async () => {
+        const cached = await getCachedGeoJson(GEO_KEC_KEY);
+        if (cached && cached.features && cached.features.length > 0) {
+            rawGeoJsonKecData = cached;
+            buildGeoIndexKec();
+            return rawGeoJsonKecData;
+        }
+
+        try {
+            const supabaseKecUrl = 'https://adlsyyualatelwwkftyf.supabase.co/storage/v1/object/public/assets/Kecamatan-Jatim.geojson';
+            const res = await fetch(supabaseKecUrl);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.features && data.features.length > 0) {
+                    rawGeoJsonKecData = data;
+                    buildGeoIndexKec();
+                    setCachedGeoJson(GEO_KEC_KEY, rawGeoJsonKecData);
+                    return rawGeoJsonKecData;
+                }
+            }
+        } catch (e) {
+            console.warn("Gagal load dari Supabase, fallback ke GitHub...", e);
+        }
+
+        const url = 'https://raw.githubusercontent.com/fahadh4ilyas/indonesia-geojson-archive/master/Indonesia_subdistricts.geojson';
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Gagal load GeoJSON Kecamatan (Supabase & GitHub)");
+        const fullData = await res.json();
+        const jatimFeatures = (fullData.features || []).filter(f =>
+            ((f.properties || {}).NAME_1 || "").toUpperCase() === "JAWA TIMUR"
+        );
+        rawGeoJsonKecData = { type: "FeatureCollection", features: jatimFeatures };
+        buildGeoIndexKec();
+        setCachedGeoJson(GEO_KEC_KEY, rawGeoJsonKecData);
+        return rawGeoJsonKecData;
+    })();
+
+    try {
+        return await geoJsonKecLoadPromise;
+    } catch (e) {
+        rawGeoJsonKecData = null;
+        console.error(e);
+        throw e;
+    } finally {
+        geoJsonKecLoadPromise = null;
+    }
+}
+
+function normalizeKey(str) { if (!str) return ""; return String(str).toUpperCase().replace(/KABUPATEN\s+/g, "").replace(/KOTA\s+/g, "").replace(/KECAMATAN\s+/g, "").replace(/KEC\.\s*/g, "").replace(/[^A-Z0-9]/g, ""); }
+function extractRegionName(properties, isModeKecamatan) {
+    if (isModeKecamatan) {
+        let rawKec = properties.NAME_3 || properties.NAMOBJ || properties.WADMKC || properties.KECAMATAN || properties.kecamatan || properties.district || properties.NAME || properties.Nm_Kec || properties.nama || "";
+        let rawKab = properties.NAME_2 || properties.WADMKK || properties.kabupaten || properties.regency || "";
+        const isKota = (properties.TYPE_2 || "").toUpperCase() === "KOTA" || /^KOTA\s+/i.test(rawKab);
+        return { kecamatan: String(rawKec).toUpperCase().replace(/KECAMATAN\s+/g, "").replace(/KEC\.\s*/g, "").trim(), kabupaten: String(rawKab).toUpperCase().replace(/KABUPATEN\s+/g, "").replace(/KOTA\s+/g, "").trim(), isKota: isKota };
+    }
+    let rawKab = properties.NAME_2 || properties.WADMKK || properties.kabupaten || properties.Nm_Kab || properties.NAMOBJ || properties.NAME || "";
+    const isKota = (properties.TYPE_2 || "").toUpperCase() === "KOTA" || /^KOTA\s+/i.test(rawKab) || /KOTA/i.test(String(rawKab));
+    return { kecamatan: "", kabupaten: String(rawKab).toUpperCase().replace(/^KABUPATEN\s+/i, "").replace(/^KOTA\s+/i, "").trim(), isKota: isKota };
+}
+function makeKabKey(name, isKota) { const n = normalizeKey(name); if (!n) return ""; return (isKota ? "KOTA" : "KAB") + n; }
+function buildGeoIndexKab() { geoKeyIndexKab = {}; if (!rawGeoJsonKabData) return; (rawGeoJsonKabData.features || []).forEach(f => { const info = extractRegionName(f.properties, false); const key = makeKabKey(info.kabupaten, info.isKota); if (key) { geoKeyIndexKab[key] = true; geoKeyIndexKab[normalizeKey(info.kabupaten)] = key; } }); }
+function buildGeoIndexKec() { geoKeyIndexKec = {}; if (!rawGeoJsonKecData) return; (rawGeoJsonKecData.features || []).forEach(f => { const info = extractRegionName(f.properties, true); const kabKey = makeKabKey(info.kabupaten, info.isKota); const kecKey = normalizeKey(info.kecamatan); const key = kabKey + "_" + kecKey; if (key && kecKey) { geoKeyIndexKec[key] = true; } }); }
+function resolveAggKey(kab, kec, isModeKecamatan) {
+    const nKab = normalizeKey(kab); const nKec = normalizeKey(kec);
+    if (!isModeKecamatan) {
+        if (KEY_ALIASES[nKab] && geoKeyIndexKab[KEY_ALIASES[nKab]]) return { key: KEY_ALIASES[nKab], status: "alias", from: nKab };
+        if (geoKeyIndexKab["KAB" + nKab]) return { key: "KAB" + nKab, status: "exact" };
+        if (geoKeyIndexKab["KOTA" + nKab]) return { key: "KOTA" + nKab, status: "exact" };
+        if (geoKeyIndexKab[nKab] && typeof geoKeyIndexKab[nKab] === "string") return { key: geoKeyIndexKab[nKab], status: "exact" };
+        return { key: nKab, status: "unmatched" };
+    }
+    const candidates = []; if (KEY_ALIASES[nKab]) candidates.push(KEY_ALIASES[nKab]); candidates.push("KAB" + nKab); candidates.push("KOTA" + nKab); candidates.push(nKab);
+    for (const parent of candidates) {
+        const rawKey = parent + "_" + nKec; if (geoKeyIndexKec[rawKey]) return { key: rawKey, status: "exact" };
+        if (KEY_ALIASES[rawKey] && geoKeyIndexKec[KEY_ALIASES[rawKey]]) return { key: KEY_ALIASES[rawKey], status: "alias", from: rawKey };
+    }
+    return { key: nKab + "_" + nKec, status: "unmatched" };
+}
+function makeAggKeyFromFeature(feature, isModeKecamatan) { const info = extractRegionName(feature.properties, isModeKecamatan); if (isModeKecamatan) { return makeKabKey(info.kabupaten, info.isKota) + "_" + normalizeKey(info.kecamatan); } return makeKabKey(info.kabupaten, info.isKota); }
+
+// ================= FOKUS WILAYAH & AUTO-ZOOM =================
+function updateFocusBarUI() {
+    const bar = els.regionFocusBar || $('regionFocusBar');
+    const txt = els.txtFocusedRegion || $('txtFocusedRegion');
+    if (!bar || !txt) return;
+    const isZoomedIn = !!(map && map.getZoom() > JATIM_DEFAULT_ZOOM);
+
+    if (selectedRegionKey && selectedRegionLabel) {
+        txt.innerText = `🎯 ${selectedRegionLabel}`;
+        txt.style.display = "inline";
+        bar.classList.remove('hidden');
+    } else if (isZoomedIn) {
+        txt.innerText = "";
+        txt.style.display = "none";
+        bar.classList.remove('hidden');
+    } else {
+        txt.innerText = "";
+        txt.style.display = "none";
+        bar.classList.add('hidden');
+    }
+}
+
+function focusOnRegion(layer, keyWilayah, label, isModeKecamatan) {
+    if (!map || !layer) return;
+    selectedRegionKey = keyWilayah;
+    selectedRegionScale = isModeKecamatan ? 'kec' : 'kab';
+    selectedRegionLabel = label;
+
+    const targetLayer = isModeKecamatan ? geojsonLayerKec : geojsonLayerKab;
+    if (targetLayer) {
+        targetLayer.setStyle((feature) => getStyleForFeature(feature, isModeKecamatan));
+    }
+    if (typeof layer.bringToFront === "function") {
+        layer.bringToFront();
+    }
+
+    if (typeof layer.getBounds === "function") {
+        const bounds = layer.getBounds();
+        if (bounds && bounds.isValid()) {
+            map.fitBounds(bounds, {
+                padding: [28, 28],
+                maxZoom: isModeKecamatan ? 15 : 13,
+                animate: true
+            });
+        }
+    }
+    updateFocusBarUI();
+}
+
+function resetMapFocus(resetView = true) {
+    selectedRegionKey = null;
+    selectedRegionScale = null;
+    selectedRegionLabel = "";
+
+    if (activeGeoScale === 'kec' && geojsonLayerKec) {
+        geojsonLayerKec.setStyle((feature) => getStyleForFeature(feature, true));
+    } else if (activeGeoScale === 'kab' && geojsonLayerKab) {
+        geojsonLayerKab.setStyle((feature) => getStyleForFeature(feature, false));
+    }
+
+    if (resetView && map) {
+        map.flyTo(JATIM_DEFAULT_CENTER, JATIM_DEFAULT_ZOOM, { duration: 0.6 });
+    }
+    updateFocusBarUI();
+}
+
+function getStyleForFeature(feature, isModeKecamatan) {
+    const keyWilayah = makeAggKeyFromFeature(feature, isModeKecamatan);
+    const totalArea = dataAgregasiArea[keyWilayah] || 0;
+    const isModePotensi = currentMapMode.includes('potensi');
+    const clr = isModePotensi
+        ? (totalArea > 200 ? '#dc2626' : totalArea >= 50 ? '#f97316' : totalArea >= 10 ? '#eab308' : totalArea >= 1 ? '#4ade80' : totalArea > 0 ? '#38bdf8' : '#cbd5e1')
+        : (totalArea >= 50 ? '#dc2626' : totalArea >= 10 ? '#f97316' : totalArea >= 1 ? '#facc15' : totalArea > 0 ? '#3b82f6' : '#cbd5e1');
+
+    const currentScale = isModeKecamatan ? 'kec' : 'kab';
+    const hasFocus = !!selectedRegionKey && selectedRegionScale === currentScale;
+    const isSelected = hasFocus && keyWilayah === selectedRegionKey;
+
+    return {
+        fillColor: clr,
+        weight: isSelected ? 3 : (isModeKecamatan ? 0.6 : 1.5),
+        opacity: 1,
+        color: isSelected ? '#0f172a' : '#ffffff',
+        fillOpacity: hasFocus ? (isSelected ? 0.85 : 0.2) : 0.75
+    };
+}
+
+function buildReusableGeoJsonLayer(geoData, isModeKecamatan) {
+    return L.geoJson(geoData, {
+        style: (feature) => getStyleForFeature(feature, isModeKecamatan),
+        onEachFeature: (feature, layer) => {
+            const regionInfo = extractRegionName(feature.properties, isModeKecamatan);
+            const keyWilayah = makeAggKeyFromFeature(feature, isModeKecamatan);
+            const displayName = isModeKecamatan
+                ? `${escapeHtml(regionInfo.kecamatan)}<br><span class="text-[9px] text-slate-400">${regionInfo.isKota ? 'Kota ' : 'Kab. '}${escapeHtml(regionInfo.kabupaten)}</span>`
+                : (regionInfo.isKota ? 'Kota ' : 'Kab. ') + escapeHtml(regionInfo.kabupaten);
+            const focusLabel = isModeKecamatan
+                ? `Kec. ${regionInfo.kecamatan} (${regionInfo.isKota ? 'Kota ' : 'Kab. '}${regionInfo.kabupaten})`
+                : `${regionInfo.isKota ? 'Kota ' : 'Kab. '}${regionInfo.kabupaten}`;
+
+            layer.on({
+                mouseover: (e) => {
+                    e.target.setStyle({ weight: 3, color: '#1e293b', fillOpacity: 0.9 });
+                    if (e.target.bringToFront) e.target.bringToFront();
+                },
+                mouseout: (e) => {
+                    e.target.setStyle(getStyleForFeature(feature, isModeKecamatan));
+                },
+                click: (e) => {
+                    focusOnRegion(e.target, keyWilayah, focusLabel, isModeKecamatan);
+                }
+            });
+
+            layer.bindTooltip(() => {
+                const isModePotensi = currentMapMode.includes('potensi');
+                const area = dataAgregasiArea[keyWilayah] || 0;
+                return `<div class="text-center p-1 font-sans"><span class="text-[9px] text-slate-400 font-bold uppercase">${isModeKecamatan ? 'KECAMATAN' : (regionInfo.isKota ? 'KOTA' : 'KABUPATEN')}</span><br><b class="text-xs uppercase text-slate-800">${displayName || 'Unknown'}</b><br><span class="${isModePotensi ? 'text-emerald-600' : 'text-blue-600'} text-[10px] uppercase font-bold block mt-1">${isModePotensi ? 'Total Potensi:' : 'Total Lahan:'}</span><span class="text-slate-800 font-black text-sm">${area.toFixed(2)} Ha</span></div>`;
+            }, { sticky: true, className: 'bg-white/90 backdrop-blur border-0 shadow-lg rounded-lg' });
+        }
+    });
+}
+
+function getOrComputeMapAggregation(mode, onlyAktif) {
+    const isModePotensi = mode.includes('potensi');
+    const isModeKecamatan = mode.includes('kec');
+    const effectiveOnlyAktif = isModePotensi ? true : onlyAktif;
+    const indexReady = isModeKecamatan ? Object.keys(geoKeyIndexKec).length > 0 : Object.keys(geoKeyIndexKab).length > 0;
+    const cacheKey = `${mode}|${effectiveOnlyAktif}|${dataVersion}`;
+
+    if (indexReady && mapAggCache.has(cacheKey)) {
+        return mapAggCache.get(cacheKey);
+    }
+
+    const aggArea = {};
+    const unmappedPerDaerah = {};
+    const unmatchedMap = {};
+    const markerRows = [];
+    let countLolosFilter = 0;
+    let countDiabaikan = 0;
+    let totalAreaHa = 0;
+
+    for (let i = 0; i < globalData.length; i++) {
+        const row = globalData[i];
+        if (effectiveOnlyAktif && !row._isAktif) {
+            countDiabaikan++;
+            continue;
+        }
+
+        countLolosFilter++;
+        const nilaiLuasRow = isModePotensi ? row._potensiNum : row._luasNum;
+        totalAreaHa += nilaiLuasRow;
+
+        const resolved = resolveAggKey(row._kota, row._kec, isModeKecamatan);
+        const keyArea = resolved.key;
+        if (resolved.status === "unmatched" && row._idPartsLen >= 2) {
+            if (!unmatchedMap[keyArea]) {
+                unmatchedMap[keyArea] = { kab: row._kota, kec: isModeKecamatan ? row._kec : "-", count: 0, sampleId: row.ID_Demplot };
+            }
+            unmatchedMap[keyArea].count++;
+        }
+        if (row._idPartsLen >= 2) {
+            aggArea[keyArea] = (aggArea[keyArea] || 0) + nilaiLuasRow;
+        }
+
+        if (row._coords) {
+            markerRows.push(row);
+        } else {
+            const displayAreaName = isModeKecamatan ? `${row._kecUpper} (${row._kotaUpper})` : row._kotaUpper;
+            unmappedPerDaerah[displayAreaName] = (unmappedPerDaerah[displayAreaName] || 0) + 1;
+        }
+    }
+
+    const result = {
+        aggArea,
+        unmappedPerDaerah,
+        unmatchedList: Object.entries(unmatchedMap),
+        markerRows,
+        countLolosFilter,
+        countDiabaikan,
+        totalAreaHa,
+        effectiveOnlyAktif
+    };
+
+    if (indexReady) {
+        mapAggCache.set(cacheKey, result);
+    }
+    return result;
+}
+
+function toggleLahanAktif() {
+    isOnlyAktif = document.getElementById('toggleAktif').checked;
+    if (currentMapMode === 'tabel' || currentMapMode === 'titik') renderTabelPeringkat(currentMapMode);
+    else renderPetaBerdasarkanMode();
+}
+
+async function switchMapMode(mode) {
+    if (currentMapMode === mode) return;
+    currentMapMode = mode;
+    const requestVersion = ++mapModeLoadVersion;
+    const buttons = {
+        'demplot': $('btnModeDemplot'), 'potensi': $('btnModePotensi'),
+        'demplot_kec': $('btnModeDemplotKec'), 'potensi_kec': $('btnModePotensiKec'),
+        'tabel': $('btnModeTabel'), 'titik': $('btnModeTitik')
+    };
+    Object.values(buttons).forEach(button => {
+        if (button) { button.classList.remove('tab-active'); button.classList.add('tab-inactive'); }
+    });
+    if (buttons[mode]) buttons[mode].classList.replace('tab-inactive', 'tab-active');
+
+    if (mode.includes('potensi')) $('toggleContainer').classList.add('hidden');
+    else $('toggleContainer').classList.remove('hidden');
+
+    if (mode === 'tabel' || mode === 'titik') {
+        $('mapWrapper').classList.add('hidden');
+        $('tableWrapper').classList.remove('hidden');
+        $('bottomStatPanel').classList.add('hidden');
+        $('matchWarningBox').classList.add('hidden');
+        $('searchRankInput').value = "";
+        $('mapLoader').classList.add('hidden');
+        renderTabelPeringkat(mode);
+        return;
+    }
+
+    $('mapWrapper').classList.remove('hidden');
+    $('tableWrapper').classList.add('hidden');
+    $('bottomStatPanel').classList.remove('hidden');
+
+    const needsKecamatan = mode.includes('kec');
+    const neededData = needsKecamatan ? rawGeoJsonKecData : rawGeoJsonKabData;
+    try {
+        if (!neededData) {
+            $('mapLoader').classList.remove('hidden');
+            $('loaderText').innerText = needsKecamatan ? "Mengunduh peta kecamatan..." : "Mengunduh peta kabupaten/kota...";
+            if (needsKecamatan) await fetchGeoJsonKecData();
+            else await fetchGeoJsonKabData();
+        }
+        if (requestVersion !== mapModeLoadVersion || currentMainTab !== 'peta') return;
+        if (needsKecamatan && !rawGeoJsonKecData) throw new Error('GeoJSON kecamatan tidak tersedia.');
+        if (!needsKecamatan && !rawGeoJsonKabData) throw new Error('GeoJSON kabupaten/kota tidak tersedia.');
+        renderPetaBerdasarkanMode();
+        $('mapLoader').classList.add('hidden');
+        setTimeout(() => { if (map) map.invalidateSize(); }, 100);
+    } catch (e) {
+        if (requestVersion === mapModeLoadVersion) {
+            $('mapLoader').classList.add('hidden');
+            alert("Gagal memuat peta: " + e.message);
+        }
+    }
+}
+
+function renderTabelPeringkat(jenisTabel) {
+    const isModePotensi = (jenisTabel === 'tabel');
+    const effectiveOnlyAktif = isModePotensi ? true : isOnlyAktif;
+    const cacheKey = `${jenisTabel}|${effectiveOnlyAktif}|${dataVersion}`;
+
+    if (isModePotensi) {
+        $('rankHeaderTitle').innerHTML = "<i class='fas fa-trophy text-orange-500 mr-2'></i> Tabel Peringkat Potensi Pasar (Jatim)";
+        $('thNilaiTabel').innerText = "Potensi Pasar (Ha)";
+    } else {
+        $('rankHeaderTitle').innerHTML = "<i class='fas fa-map-pin text-blue-500 mr-2'></i> Sebaran Titik Demplot (Jatim)";
+        $('thNilaiTabel').innerText = "Jumlah Titik";
+    }
+
+    if (rankTableCache.has(cacheKey)) {
+        currentTabelData = rankTableCache.get(cacheKey);
+    } else {
+        const dataPeringkat = {};
+        for (let i = 0; i < globalData.length; i++) {
+            const row = globalData[i];
+            if (effectiveOnlyAktif && !row._isAktif) continue;
+            const nilai = isModePotensi ? row._potensiNum : 1;
+            if (isModePotensi && nilai <= 0) continue;
+
+            const kab = row._kotaUpper;
+            const kec = row._kecUpper;
+            const keyUnik = kab + "_" + kec;
+            if (!dataPeringkat[keyUnik]) {
+                dataPeringkat[keyUnik] = { kabupaten: kab, kecamatan: kec, totalNilai: 0, pencarianTeks: `${kab} ${kec}`.toLowerCase() };
+            }
+            dataPeringkat[keyUnik].totalNilai += nilai;
+        }
+        currentTabelData = Object.values(dataPeringkat).sort((a, b) => b.totalNilai - a.totalNilai);
+        rankTableCache.set(cacheKey, currentTabelData);
+    }
+
+    lastRankRenderKey = "";
+    tampilkanBarisTabel(currentTabelData, isModePotensi);
+}
+
+function tampilkanBarisTabel(dataArray, isModePotensi) {
+    const keyword = $('searchRankInput') ? $('searchRankInput').value.trim().toLowerCase() : "";
+    const renderKey = `${currentMapMode}|${isOnlyAktif}|${dataVersion}|${keyword}|${dataArray.length}`;
+    if (renderKey === lastRankRenderKey) return;
+    lastRankRenderKey = renderKey;
+
+    const tbody = document.getElementById('rankTableBody');
+    let grandTotal = 0;
+    if (dataArray.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center p-10 text-slate-500 italic">Data tidak ditemukan.</td></tr>`;
+        $('txtTableGrandTotal').innerHTML = "0";
+        return;
+    }
+
+    const rowHtml = [];
+    for (let index = 0; index < dataArray.length; index++) {
+        const item = dataArray[index];
+        grandTotal += item.totalNilai;
+        const badgeRank = index === 0 ? "🥇 1" : index === 1 ? "🥈 2" : index === 2 ? "🥉 3" : String(index + 1);
+        const classBaris = index === 0 ? "bg-orange-50/70 border-l-4 border-orange-400" : index === 1 ? "bg-slate-50/80 border-l-4 border-slate-300" : index === 2 ? "bg-amber-50/50 border-l-4 border-amber-600" : "hover:bg-slate-50";
+        let classTeks = "";
+        let formatNilai = "";
+        if (isModePotensi) {
+            classTeks = index === 0 ? "text-orange-600 font-black" : index === 1 ? "text-slate-600 font-black" : index === 2 ? "text-amber-700 font-black" : "text-slate-700";
+            formatNilai = item.totalNilai.toFixed(2);
+        } else {
+            classTeks = index === 0 ? "text-blue-600 font-black" : "text-slate-700 font-bold";
+            formatNilai = `${item.totalNilai} <span class="text-xs font-normal text-slate-400">Titik</span>`;
+        }
+        rowHtml.push(`<tr class="${classBaris}"><td class="p-4 text-center font-bold text-slate-500 text-lg border-b">${badgeRank}</td><td class="p-4 font-bold text-slate-800 border-b uppercase">${escapeHtml(item.kabupaten)}</td><td class="p-4 text-slate-600 border-b uppercase">${escapeHtml(item.kecamatan)}</td><td class="p-4 text-right ${classTeks} text-lg font-bold border-b">${formatNilai}</td></tr>`);
+    }
+    tbody.replaceChildren(createTableFragmentFromHtml(rowHtml.join("")));
+    if (isModePotensi) { $('txtTableGrandTotal').innerHTML = `<span class="text-orange-600">${grandTotal.toFixed(2)}</span> <span class="text-sm font-normal text-slate-500">Ha</span>`; } 
+    else { $('txtTableGrandTotal').innerHTML = `<span class="text-blue-600">${grandTotal}</span> <span class="text-sm font-normal text-slate-500">Titik Lahan</span>`; }
+}
+
+let rankSearchTimer = null;
+function debounceFilterTabelPeringkat() {
+    clearTimeout(rankSearchTimer);
+    rankSearchTimer = setTimeout(filterTabelPeringkat, 300);
+}
+
+function filterTabelPeringkat() {
+    const keyword = $('searchRankInput').value.trim().toLowerCase();
+    const isModePotensi = (currentMapMode === 'tabel');
+    if (keyword === "") { tampilkanBarisTabel(currentTabelData, isModePotensi); return; }
+    const filtered = currentTabelData.filter(item => item.pencarianTeks.includes(keyword));
+    tampilkanBarisTabel(filtered, isModePotensi);
+}
+
+function updateGeoJsonLayerOptimized(isModeKecamatan) {
+    const targetScale = isModeKecamatan ? "kec" : "kab";
+    const targetGeoData = isModeKecamatan ? rawGeoJsonKecData : rawGeoJsonKabData;
+    if (!targetGeoData) return;
+
+    if (isModeKecamatan && !geojsonLayerKec) {
+        geojsonLayerKec = buildReusableGeoJsonLayer(rawGeoJsonKecData, true);
+    } else if (!isModeKecamatan && !geojsonLayerKab) {
+        geojsonLayerKab = buildReusableGeoJsonLayer(rawGeoJsonKabData, false);
+    }
+
+    const targetLayer = isModeKecamatan ? geojsonLayerKec : geojsonLayerKab;
+    const otherLayer = isModeKecamatan ? geojsonLayerKab : geojsonLayerKec;
+
+    if (activeGeoScale !== targetScale) {
+        if (selectedRegionScale && selectedRegionScale !== targetScale) {
+            selectedRegionKey = null;
+            selectedRegionScale = null;
+            selectedRegionLabel = "";
+        }
+        if (otherLayer && map.hasLayer(otherLayer)) {
+            map.removeLayer(otherLayer);
+        }
+        if (targetLayer && !map.hasLayer(targetLayer)) {
+            targetLayer.addTo(map);
+        }
+        activeGeoScale = targetScale;
+    }
+
+    if (targetLayer) {
+        targetLayer.setStyle((feature) => getStyleForFeature(feature, isModeKecamatan));
+        if (typeof targetLayer.bringToBack === "function") {
+            targetLayer.bringToBack();
+        }
+    }
+    updateFocusBarUI();
+}
+
+function updateMarkersOptimized(markerRows, isModePotensi, effectiveOnlyAktif) {
+    const markerSignature = `${isModePotensi}|${effectiveOnlyAktif}|${dataVersion}`;
+    if (markerSignature === lastMarkerSignature) return;
+    lastMarkerSignature = markerSignature;
+
+    markersLayerGroup.clearLayers();
+
+    const pinColor = isModePotensi ? '#24f70c' : '#dc2626';
+    const customIcon = L.divIcon({
+        className: 'custom-loli-icon',
+        html: `<div class="loli-wrapper" style="position:relative;width:25px;height:45px;filter:drop-shadow(0px 4px 3px rgba(0,0,0,0.4));"><div style="position:absolute;bottom:0;left:13px;width:4px;height:22px;background:linear-gradient(to right,#f1f5f9,#cbd5e1);border-radius:2px;border:1px solid #94a3b8;"></div><div style="position:absolute;top:0;left:2.5px;width:25px;height:25px;border-radius:50%;background-color:${pinColor};border:2.5px solid white;box-shadow:inset -2px -2px 5px rgba(0,0,0,0.3);"></div></div>`,
+        iconSize: [30, 45], iconAnchor: [15, 45], popupAnchor: [0, -42]
+    });
+    const grayIcon = L.divIcon({
+        className: 'custom-loli-icon',
+        html: `<div class="loli-wrapper" style="position:relative;width:25px;height:45px;filter:drop-shadow(0px 4px 3px rgba(0,0,0,0.4));"><div style="position:absolute;bottom:0;left:13px;width:4px;height:22px;background:linear-gradient(to right,#f1f5f9,#cbd5e1);border-radius:2px;border:1px solid #94a3b8;"></div><div style="position:absolute;top:0;left:2.5px;width:25px;height:25px;border-radius:50%;background-color:#94a3b8;border:2.5px solid white;box-shadow:inset -2px -2px 5px rgba(0,0,0,0.3);"></div></div>`,
+        iconSize: [30, 45], iconAnchor: [15, 45], popupAnchor: [0, -42]
+    });
+
+    const markersBatch = [];
+    for (let i = 0; i < markerRows.length; i++) {
+        const row = markerRows[i];
+        const coords = row._coords;
+        const isAktif = row._isAktif;
+        const markerIcon = (!isModePotensi && !effectiveOnlyAktif && !isAktif) ? grayIcon : customIcon;
+        const marker = L.marker([coords.lat, coords.lng], { icon: markerIcon });
+
+        marker.bindPopup(() => `
+            <div class="text-sm p-1" style="font-family:'Inter',sans-serif;">
+                <strong class="text-slate-700 border-b border-slate-200 pb-1 mb-2 block font-mono text-xs">${escapeHtml(row.ID_Demplot || 'No ID')}</strong>
+                <table class="w-full text-xs">
+                    <tr><td class="text-slate-500 py-1 pr-3">Pemilik</td><td class="font-bold text-slate-800">${escapeHtml(displayValue(row["Nama Pemilik Demplot"], '-'))}</td></tr>
+                    <tr><td class="text-slate-500 py-1 pr-3">Luas Lahan</td><td class="${!isModePotensi?'font-bold text-red-600':'text-slate-800'}">${row._luasNum} <span class="text-slate-400">Ha</span></td></tr>
+                    <tr><td class="text-slate-500 py-1 pr-3">Potensi Pasar</td><td class="${isModePotensi?'font-bold text-emerald-600':'text-slate-800'}">${row._potensiNum} <span class="text-slate-400">Ha</span></td></tr>
+                    <tr><td class="text-slate-500 py-1 pr-3">Status Aktif</td><td class="${isAktif ? 'font-bold text-emerald-600' : 'font-bold text-slate-500'}">${isAktif ? 'Aktif' : 'Non-Aktif'}</td></tr>
+                </table>
+            </div>`);
+        markersBatch.push(marker);
+    }
+
+    if (typeof markersLayerGroup.addLayers === "function") {
+        markersLayerGroup.addLayers(markersBatch);
+    } else {
+        for (let i = 0; i < markersBatch.length; i++) {
+            markersLayerGroup.addLayer(markersBatch[i]);
+        }
+    }
+}
+
+function renderPetaBerdasarkanMode() {
+    if (!map || !markersLayerGroup) return;
+    const isModePotensi = currentMapMode.includes('potensi');
+    const isModeKecamatan = currentMapMode.includes('kec');
+
+    const stats = getOrComputeMapAggregation(currentMapMode, isOnlyAktif);
+    dataAgregasiArea = stats.aggArea;
+
+    showMatchWarning(stats.unmatchedList);
+    updateUITexts(stats.countLolosFilter, stats.totalAreaHa, stats.countDiabaikan, stats.unmappedPerDaerah);
+
+    updateGeoJsonLayerOptimized(isModeKecamatan);
+    updateMarkersOptimized(stats.markerRows, isModePotensi, stats.effectiveOnlyAktif);
+}
+
+function showMatchWarning(unmatchedList) {
+    const box = document.getElementById('matchWarningBox'); const list = document.getElementById('matchWarningList');
+    if (!unmatchedList || unmatchedList.length === 0) { box.classList.add('hidden'); list.innerHTML = ""; return; }
+    box.classList.remove('hidden'); list.innerHTML = unmatchedList.map(([k, v]) => { const label = v.kec && v.kec !== "-" ? `${escapeHtml(v.kab)} / ${escapeHtml(v.kec)}` : escapeHtml(v.kab); return `<span class="inline-flex items-center px-2 py-1 rounded bg-amber-100 border border-amber-200">${label} <span class="ml-1 opacity-60">×${v.count}</span></span>`; }).join("");
+}
+
+function updateUITexts(countLolosFilter, totalAreaHa, countDiabaikan, unmappedPerDaerah) {
+    $('txtTotalData').innerText = countLolosFilter; $('txtTotalArea').innerText = totalAreaHa.toFixed(2);
+    let isModePotensi = currentMapMode.includes('potensi');
+    if (isModePotensi) {
+        $('labelTotalLahan').innerText = "Lahan Aktif Saja:"; $('iconTotalLahan').className = "fas fa-check-circle text-emerald-500";
+        $('boxIgnored').classList.remove('hidden'); $('txtIgnoredData').innerText = countDiabaikan; $('labelUnmapped').innerText = "Lahan Aktif tanpa koordinat valid:";
+    } else {
+        $('labelTotalLahan').innerText = isOnlyAktif ? "Lahan Aktif Saja:" : "Semua Lahan Demplot:"; $('iconTotalLahan').className = isOnlyAktif ? "fas fa-check-circle text-blue-500" : "fas fa-map-marker-alt text-blue-500";
+        if(isOnlyAktif) { $('boxIgnored').classList.remove('hidden'); $('txtIgnoredData').innerText = countDiabaikan; $('labelUnmapped').innerText = "Lahan Aktif tanpa koordinat valid:"; } 
+        else { $('boxIgnored').classList.add('hidden');$('labelUnmapped').innerText = "Daerah Tanpa Lahan (Kosong / Koordinat Gagal):"; }
+    }
+    
+    if (isModePotensi) {
+        $('legendTitle').innerText = "Potensi Pasar (Ha)";
+        $('legendContainer').innerHTML = `<div class="flex items-center gap-3 mb-2"><div class="w-4 h-4 rounded shadow-sm bg-[#dc2626]"></div> &gt; 200 Ha</div><div class="flex items-center gap-3 mb-2"><div class="w-4 h-4 rounded shadow-sm bg-[#f97316]"></div> 50 - 200 Ha</div><div class="flex items-center gap-3 mb-2"><div class="w-4 h-4 rounded shadow-sm bg-[#eab308]"></div> 10 - 50 Ha</div><div class="flex items-center gap-3 mb-2"><div class="w-4 h-4 rounded shadow-sm bg-[#4ade80]"></div> 1 - 10 Ha</div><div class="flex items-center gap-3 mb-2"><div class="w-4 h-4 rounded shadow-sm bg-[#38bdf8]"></div> &lt; 1 Ha</div><div class="flex items-center gap-3 mt-3 pt-2 border-t border-slate-200"><div class="w-4 h-4 rounded shadow-sm bg-[#cbd5e1]"></div> 0 Ha (Kosong)</div>`;
+    } else {
+        $('legendTitle').innerText = "Luasan Demplot (Ha)";
+        $('legendContainer').innerHTML = `<div class="flex items-center gap-3 mb-2"><div class="w-4 h-4 rounded shadow-sm bg-[#dc2626]"></div> &gt; 50 Ha</div><div class="flex items-center gap-3 mb-2"><div class="w-4 h-4 rounded shadow-sm bg-[#f97316]"></div> 10 - 50 Ha</div><div class="flex items-center gap-3 mb-2"><div class="w-4 h-4 rounded shadow-sm bg-[#facc15]"></div> 1 - 10 Ha</div><div class="flex items-center gap-3 mb-2"><div class="w-4 h-4 rounded shadow-sm bg-[#3b82f6]"></div> &lt; 1 Ha</div><div class="flex items-center gap-3 mt-3 pt-2 border-t border-slate-200"><div class="w-4 h-4 rounded shadow-sm bg-[#cbd5e1]"></div> 0 Ha (Kosong)</div>${!isOnlyAktif ? '<div class="flex items-center gap-3 mt-1 text-[10px] italic"><div class="w-3 h-3 rounded-full bg-[#94a3b8]"></div> Pin Abu: Non-Aktif</div>' : ''}`;
+    }
+    
+    const regencyBox = document.getElementById('unmappedRegencyBox'); const regencyList = document.getElementById('unmappedRegencyList');
+    const entries = Object.entries(unmappedPerDaerah);
+    if (entries.length > 0) {
+        regencyBox.classList.remove('hidden');
+        regencyList.innerHTML = entries
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([nama, count]) => `<span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200"><i class="fas fa-map-marker-alt mr-1.5 opacity-60"></i> ${escapeHtml(nama)}<span class="ml-2 bg-slate-300 text-slate-800 px-1.5 py-0.5 rounded-md text-[11px] font-bold">${count}</span></span>`)
+            .join("");
+    } else {
+        regencyBox.classList.add('hidden');
+        regencyList.innerHTML = "";
+    }
+}
+
+function parseCoordinatesLama(urlGps) {
+    if (!urlGps) return null;
+    const str = String(urlGps).trim();
+
+    // Prioritas 1: Format Pin Asli Google Maps (!3dLAT!4dLNG)
+    let match = str.match(/!3d([-\d.]+)!4d([-\d.]+)/);
+    
+    // Prioritas 2: Parameter query (?q=LAT,LNG atau &ll=LAT,LNG)
+    if (!match) match = str.match(/[?&](?:q|ll|query)=([-\d.]+)\s*,\s*([-\d.]+)/i);
+    
+    // Prioritas 3: Format koordinat standar
+    if (!match) match = str.match(/([-]?\d+\.\d+)\s*,\s*([-]?\d+\.\d+)/);
+    if (!match) match = str.match(/([-]?\d+\.\d+)[\s,]+([-]?\d+\.\d+)/);
+
+    if (match) {
+        let lat = parseFloat(match[1]);
+        let lng = parseFloat(match[2]);
+        if (lat >= -15 && lat <= 15 && lng >= 90 && lng <= 150) return { lat, lng };
+        if (lng >= -15 && lng <= 15 && lat >= 90 && lat <= 150) return { lat: lng, lng: lat };
+    }
+    return null;
+}
+</script>
+</body>
+</html>
